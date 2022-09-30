@@ -1,0 +1,10 @@
+{
+  "name": "steam-shotrcuts-editor",
+  "version": "0.0.1",
+  "description": "VDF Shortcuts Editor for Steam Client",
+  "main": "none",
+  "repository": "https://github.com/magiusche/steam-shotrcuts-editor",
+  "author": "Magius(CHE)",
+  "license": "MIT",
+  "private": false
+}
