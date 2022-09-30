@@ -1,7 +1,9 @@
-use clap::{Parser, Subcommand};
+use chrono::{DateTime, NaiveDateTime, Utc};
+use clap::{arg_enum, Parser, Subcommand};
 use std::{
     fs::File,
     io::{BufReader, Read},
+    iter::once,
     path::Path,
 };
 
@@ -22,7 +24,104 @@ struct Args {
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// List entries summary info
-    List,
+    List {
+        //, default_value_t = " "
+        #[clap(long, default_value = " ")]
+        /// Table output columns separator
+        separator: String,
+        #[clap(value_names(&["format"]),long,case_insensitive = true, default_value_t = ListColumnsModes::Plain, possible_values(ListColumnsModes::variants()))]
+        /// AppID with specified format
+        app_id: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::Plain, possible_values(ListColumnsModes::variants()))]
+        /// AppName with specified format
+        app_name: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// Exe with specified format
+        exe: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// Icon with specified format
+        icon: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// AllowDesktopConfig with specified format
+        allow_desktop_config: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// AllowOverlay with specified format
+        allow_overlay: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// Devkit with specified format
+        devkit: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// DevkitGameId with specified format
+        devkit_game_id: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// DevkitOverrideAppId with specified format
+        devkit_override_app_id: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// FlatpakAppId with specified format
+        flatpak_app_id: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// IsHidden with specified format
+        is_hidden: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// LastPlayTime with specified format
+        last_play_time: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// LastPlayTime in "YYYY/MM/DD, hh:mm:ss UTC" with specified format
+        last_play_time_utc: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// LastPlayTime in "YYYY/MM/DD, hh:mm:ss" (Localtime) with specified format
+        last_play_time_fmt: ListColumnsModes,
+        
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// LastPlayTime in ISO with specified format
+        last_play_time_iso: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// LaunchOptions with specified format
+        launch_options: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// OpenVR with specified format
+        open_vr: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// ShortcutPath with specified format
+        shortcut_path: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// StartDir with specified format
+        start_dir: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// Tags with specified format
+        tags: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
+        /// Override all columns format with the specified one
+        all: ListColumnsModes,
+    },
+}
+
+arg_enum! {
+    #[derive(Debug, PartialEq, Eq)]
+    enum ListColumnsModes {
+        None,
+        Plain,
+        //Padded,
+    }
 }
 
 fn main() -> Result<(), Error> {
@@ -40,9 +139,7 @@ fn main() -> Result<(), Error> {
         ))),
     };
 
-    println!("Analyze {:?}:", shortcuts_vdf);
-
-    let mut shortcuts: Vec<Shortcuts> = vec![];
+    //println!("Analyze {:?}:", shortcuts_vdf);
 
     let ret = File::open(shortcuts_vdf.as_os_str().to_str().unwrap());
     if ret.is_err() {
@@ -68,16 +165,144 @@ fn main() -> Result<(), Error> {
     let mut index = 0;
 
     if let Some(scs) = Shortcuts::from(&buffer, &mut index) {
-        let sc = scs.at(0);
-        println!("- {}: {:?}",0,sc);
-        // match args.command {
-        //     Commands::List => println!("- {}: {}", sc.get("appid").unwrap_or("n/a".to_owned()), sc.get("AppName").unwrap_or("".to_owned())),
-        // }
-       // println!("{:?}", &sc);
-    
+        match &args.command {
+            Commands::List { .. } => output_list(&args, &scs),
+        }
     }
 
     Ok(())
+}
+
+macro_rules! format_column_output {
+    ($a:expr,$b:expr,$c:expr,$d:expr) => {
+        once(
+            match if $a != &ListColumnsModes::None {
+                $a
+            } else {
+                $b
+            } {
+                ListColumnsModes::Plain => Some(format!($d, $c)),
+                _ => None,
+            },
+        )
+    };
+}
+
+fn output_list(args: &Args, scs: &Shortcuts) {
+    let Commands::List {
+        separator,
+        app_id,
+        app_name,
+        exe,
+        icon,
+        allow_desktop_config,
+        allow_overlay,
+        devkit,
+        devkit_game_id,
+        devkit_override_app_id,
+        flatpak_app_id,
+        is_hidden,
+        last_play_time,
+        last_play_time_fmt,
+        last_play_time_utc,
+        last_play_time_iso,
+        launch_options,
+        open_vr,
+        shortcut_path,
+        start_dir,
+        tags,
+        all,
+    } = &args.command;
+
+    println!(
+        "{}",
+        scs.iter()
+            .map(|sc| {
+                format_column_output!(all, app_id, sc.appid, "{}")
+                    .chain(format_column_output!(all, app_name, sc.appname, "{:?}"))
+                    .chain(format_column_output!(all, exe, sc.exe, "{:?}"))
+                    .chain(format_column_output!(all, icon, sc.icon, "{:?}"))
+                    .chain(format_column_output!(
+                        all,
+                        allow_desktop_config,
+                        sc.allow_desktop_config,
+                        "{}"
+                    ))
+                    .chain(format_column_output!(
+                        all,
+                        allow_overlay,
+                        sc.allow_overlay,
+                        "{}"
+                    ))
+                    .chain(format_column_output!(all, devkit, sc.devkit, "{}"))
+                    .chain(format_column_output!(
+                        all,
+                        devkit_override_app_id,
+                        sc.devkit_override_app_id,
+                        "{}"
+                    ))
+                    .chain(format_column_output!(
+                        all,
+                        flatpak_app_id,
+                        sc.flatpak_app_id,
+                        "{}"
+                    ))
+                    .chain(format_column_output!(
+                        all,
+                        devkit_game_id,
+                        sc.devkit_game_id,
+                        "{}"
+                    ))
+                    .chain(format_column_output!(all, is_hidden, sc.is_hidden, "{}"))
+                    .chain(format_column_output!(
+                        all,
+                        last_play_time,
+                        sc.last_play_time,
+                        "{}"
+                    ))
+                    .chain(format_column_output!(
+                        all,
+                        last_play_time_utc,
+                        DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(sc.last_play_time as i64, 0),Utc),
+                        "\"{}\""
+                    ))
+                    .chain(format_column_output!(
+                        all,
+                        last_play_time_fmt,
+                        NaiveDateTime::from_timestamp(sc.last_play_time as i64, 0),
+                        "\"{}\""
+                    ))
+                    .chain(format_column_output!(
+                        all,
+                        last_play_time_iso,
+                        NaiveDateTime::from_timestamp(sc.last_play_time as i64, 0),
+                        "{:?}"
+                    ))
+                    .chain(format_column_output!(
+                        all,
+                        launch_options,
+                        sc.launch_options,
+                        "{:?}"
+                    ))
+                    .chain(format_column_output!(all, open_vr, sc.open_vr, "{}"))
+                    .chain(format_column_output!(
+                        all,
+                        shortcut_path,
+                        sc.shortcut_path,
+                        "{:?}"
+                    ))
+                    .chain(format_column_output!(all, start_dir, sc.start_dir, "{:?}"))
+                    .chain(format_column_output!(all, tags, sc.tags, "{:?}"))
+                    // shortcut_path,
+                    // start_dir,
+                    // tags
+                    .filter_map(|e| e)
+                    .collect::<Vec<String>>()
+                    .join(separator)
+            })
+            .collect::<Vec<String>>()
+            .join("\n")
+    );
 }
 
 #[derive(Debug)]

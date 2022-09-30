@@ -1,4 +1,4 @@
-use std::{collections::HashMap, default};
+use std::{collections::HashMap, str::from_utf8};
 
 #[repr(u8)]
 enum VdfMapItemType {
@@ -137,7 +137,7 @@ impl Shortcuts {
         }
         None
     }
-    pub fn at(&self, index: u32) -> Option<Shortcut> {
+    pub fn at(&self, index: usize) -> Option<Shortcut> {
         if let Value::Map(m) = &self.shortcuts {
             if let Ok(ret) = TryInto::<Shortcut>::try_into((index.to_string().as_str(), m)) {
                 return Some(ret);
@@ -145,9 +145,11 @@ impl Shortcuts {
         }
         None
     }
-    pub fn get(&self, path: &str) -> Option<Value> {
-        todo!();
-        //self.props.get(&label.to_owned()).map(|s| s.clone())
+    pub fn len(&self) -> usize {
+        if let Value::Map(m) = &self.shortcuts {
+            return m.len();
+        }
+        0
     }
 }
 
@@ -171,6 +173,41 @@ pub struct Shortcut {
     pub devkit_override_app_id: u32,
     pub tags: Vec<String>,
     pub last_play_time: u32,
+}
+
+impl Shortcuts {
+    pub fn iter(&self) -> impl Iterator<Item = Shortcut> + '_ {
+        ShortcutIter {
+            shortcuts: self,
+            index: None,
+            size: self.len(),
+        }
+    }
+}
+
+pub struct ShortcutIter<'a> {
+    shortcuts: &'a Shortcuts,
+    index: Option<usize>,
+    size: usize,
+}
+
+impl<'a> Iterator for ShortcutIter<'a> {
+    type Item = Shortcut;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.index = Some(match self.index {
+            None => 0,
+            Some(n) => n + 1,
+        });
+        if let Some(act) = self.index {
+            //println!("Scan iterator {}",act);
+            if act >= self.size {
+                return None;
+            }
+            return self.shortcuts.at(act);
+        }
+        None
+    }
 }
 
 macro_rules! copy_shortcut_param {
@@ -255,14 +292,6 @@ impl TryFrom<(&str, &VdfMap)> for Shortcut {
     }
 }
 
-// impl Iterator for Shortcuts {
-//     type Item = Shortcut;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         todo!()
-//     }
-// }
-
 fn consume_map_item(buffer: &[u8], index: &mut usize) -> Option<(String, Value)> {
     //println!("[{index:x}] consume_map_item");
     let btype = consume_byte(buffer, index)?;
@@ -289,17 +318,10 @@ fn consume_map_item(buffer: &[u8], index: &mut usize) -> Option<(String, Value)>
 
 fn consume_map(buffer: &[u8], index: &mut usize) -> Option<VdfMap> {
     let mut map = VdfMap::new();
-    //println!("[{index}] consume_map");
     while let Some((key, value)) = consume_map_item(buffer, index) {
         map.insert(key, value);
     }
-    if map.len() == 0 {
-        return None;
-    }
-
     Some(map)
-    //     //read u32
-    // }
 }
 
 fn consume_u32(buffer: &[u8], index: &mut usize) -> Option<u32> {
@@ -314,9 +336,54 @@ fn consume_u32(buffer: &[u8], index: &mut usize) -> Option<u32> {
 fn consume_string(buffer: &[u8], index: &mut usize) -> Option<String> {
     let mut word = String::new();
     loop {
+        //we need to handle utf-8 here
+
         match consume_byte(buffer, index) {
             Some(0) => break,
-            Some(c) => word.push(c as char),
+            Some(c) => {
+                if c >= 128 {
+                    //utf-8
+                    let mut utf8_arr = vec![c];
+                    loop {
+                        if let Some(b) = peek_byte(buffer, *index) {
+                            if b < 128 {
+                                break;
+                            } else {
+                                utf8_arr.push(b);
+                                *index += 1;
+                            }
+                        } else {
+                            println!(
+                                "[{:x}] Invalid UTF8 chars. Word was: {:?}",
+                                *index - 1,
+                                &word
+                            );
+                            return None;
+                        }
+                    }
+
+                    if utf8_arr.len() <= 1 {
+                        println!(
+                            "[{:x}] Invalid UTF8 chars. Word was: {:?}",
+                            *index - 1,
+                            &word
+                        );
+                        return None;
+                    }
+                    if let Ok(st) = from_utf8(&utf8_arr) {
+                        word.push_str(st);
+                    } else {
+                        println!(
+                            "[{:x}] Invalid UTF8 chars. Word was: {:?}",
+                            *index - 1,
+                            &word
+                        );
+                        return None;
+                    }
+                } else {
+                    word.push(c as char)
+                }
+            }
             _ if word.len() > 0 => break,
             _ => return None,
         }
