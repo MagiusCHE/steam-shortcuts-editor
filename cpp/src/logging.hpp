@@ -12,6 +12,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <filesystem>
+
 using namespace std;
 
 #define debug$(format, ...) \
@@ -19,6 +21,9 @@ using namespace std;
 
 #define log$(sender, format, ...) \
     logging::log(sender, FMT_STRING(format), __VA_ARGS__)
+
+#define error$(sender, format, ...) \
+    logging::error(sender, FMT_STRING(format), __VA_ARGS__)
 
 const bool _isatty = isatty(fileno(stderr)) && isatty(fileno(stdin)) && isatty(fileno(stdout));
 
@@ -59,27 +64,28 @@ namespace logging
         static auto last_log_time = std::chrono::system_clock::now();
         static auto src_rootpath_size = findLastIndex(__FILE__, '/');
 
-        void vlog(const string &sender, bool space, fmt::string_view format,
+        void vlog(const string &sender, bool space, int error, fmt::string_view format,
                   fmt::format_args args)
         {
+
+            auto std = error != 0 ? stderr : stdout;
+
             auto color = log_color_by_hash(sender);
 
             auto colorCode = fmt::format("\u001B[3{}{}", (color < 8 ? "" : "8;5;"), color);
 
             last_log_time = std::chrono::system_clock::now();
             std::chrono::duration<double> elapsed_seconds = last_log_time - initial_time;
+
             if (_isatty)
-            {
-                fmt::print("{};1m{}{}\u001B[0m", colorCode, sender, space ? " " : "");
-            }
+                fmt::print(std, "{};1m{}{}\u001B[0m", colorCode, sender, space ? " " : "");
             else
-            {
-                fmt::print("{}{}", sender, space ? " " : "");
-            }
-            fmt::vprint(format, args);
+                fmt::print(std, "{}{}", sender, space ? " " : "");
+
+            fmt::vprint(std, format, args);
 
             auto passed = elapsed_seconds.count();
-            fmt::print(" {}{}{}{}s{}\n",
+            fmt::print(std, " {}{}{}{}s{}\n",
                        _isatty ? colorCode : "",
                        _isatty ? "m+" : "",
                        passed < 1000 ? floor(passed * 1000.0) : (floor(passed * 100.0) / 100.0),
@@ -94,12 +100,18 @@ namespace logging
 
         auto file_str = std::filesystem::canonical(__FILE__).string().substr(src_rootpath_size);
 
-        vlog(file_str, false, fmt::format(":{} {}", line, format), fmt::make_format_args(args...));
+        vlog(file_str, false, 0, fmt::format(":{} {}", line, format), fmt::make_format_args(args...));
     }
     template <typename S, typename... Args>
     inline void log(const string &sender, const S &format, Args &&...args)
     {
-        vlog(sender, true, format, fmt::make_format_args(args...));
+        vlog(sender, true, 0, format, fmt::make_format_args(args...));
+    }
+
+    template <typename S, typename... Args>
+    inline void error(const string &sender, const S &format, Args &&...args)
+    {
+        vlog(sender, true, -1, format, fmt::make_format_args(args...));
     }
 
     inline void update_debug_src_root_path(const char *file)
@@ -109,3 +121,28 @@ namespace logging
         // log$("logger", "_isatty {}, {}", _isatty, fileno(stderr));
     }
 }
+
+class Loggable
+{
+    string log_name;
+
+public:
+    Loggable(string log_name)
+    {
+        Loggable::log_name = log_name;
+        log("{}", "Constructed");
+    }
+
+protected:
+    template <typename S, typename... Args>
+    void log(const S &format, Args &&...args)
+    {
+        logging::vlog(log_name, true, 0, format, fmt::make_format_args(args...));
+    }
+
+    template <typename S, typename... Args>
+    void error(const S &format, Args &&...args)
+    {
+        logging::vlog(log_name, true, -1, format, fmt::make_format_args(args...));
+    }
+};

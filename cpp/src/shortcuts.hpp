@@ -2,31 +2,58 @@
 
 #include <iostream>
 #include <string>
+#include <filesystem>
+#include <map>
+#include <variant>
+#include <tuple>
+#include <optional>
 
+#include "./logging.hpp"
+
+namespace fs = filesystem;
 namespace shortcuts
 {
-    class Shortcuts
+    // class Value;
+    struct Map;
+
+    using Value = variant<uint32_t, string, Map>;
+    using VdfMap = map<string, Value>;
+
+    struct Map
     {
-    public:
-        Shortcuts()
-        {
-            std::cout << "Shortcuts: Constructed"
-                      << "\n";
-        }
-        ~Shortcuts()
-        {
-            std::cout << "Shortcuts: Destroyed"
-                      << "\n";
-        }
-        void test();
+        VdfMap v;
     };
 
-    inline void test2()
+    class Shortcut : private Loggable
     {
-        std::cout << "test2"
-                  << "\n";
-    }
+    public:
+        Shortcut();
+        ~Shortcut()
+        {
+        }
+    };
 
-    void test3();
+    //
+    class Shortcuts : private Loggable
+    {
+
+    private:
+        fs::path source_file;
+        size_t buffer_size;
+        size_t buffer_index;
+        optional<Map> consume_map();
+        bool eof();
+        optional<tuple<string, Value>> consume_map_item();
+        Shortcuts();
+
+    public:
+        Shortcuts(const string source);
+        Shortcuts(const fs::path source);
+        // const int parse() const;
+        int parse();
+        ~Shortcuts()
+        {
+        }
+    };
 
 }
