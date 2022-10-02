@@ -1,0 +1,11 @@
+{
+  "name": "steam-shotrcuts-editor",
+  "version": "0.0.1",
+  "main": "none",
+  "license": "MIT",
+  "scripts": {
+    "build:debug":"mkdir -p ./build && cmake --build ./build --config Debug --target all",
+    "build:release": "echo \"This does not work.\" || mkdir -p ./build && cmake --build ./build --config Release --target all",
+    "debug":"yarn build:debug && build/steam-shortcuts-editor"    
+  }
+}

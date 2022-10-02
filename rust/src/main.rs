@@ -10,7 +10,7 @@ use std::{
 mod shortcuts;
 use shortcuts::Shortcuts;
 
-/// Simple program to greet a person
+/// VDF Shortcuts Editor for Steam Client
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {

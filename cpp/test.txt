@@ -1,0 +1,16 @@
+yarn run v1.22.19
+$ yarn build:debug && build/steam-shortcuts-editor
+$ mkdir -p ./build && cmake --build ./build --config Debug --target all
+[0/2] Re-checking globbed directories...
+[1/2] Building CXX object CMakeFiles/steam-shortcuts-editor.dir/src/main.cpp.o
+[2/2] Linking CXX executable steam-shortcuts-editor
+main Start 0ms
+Hello C++ World from VS Code and the C++ extension! 
+test2
+test3
+test1
+Shortcuts: Constructed
+Shortcuts::test
+main End 512ms
+Shortcuts: Destroyed
+Done in 4.04s.

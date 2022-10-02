@@ -1,0 +1,12 @@
+{
+  "name": "steam-shortcuts-editor",
+  "version": "0.1.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build:release": "cargo build --target=x86_64-unknown-linux-musl --release",
+    "build:debug": "cargo build",
+    "debug": "cargo run",
+    "install": "rustup target add x86_64-unknown-linux-musl"
+  }
+}
