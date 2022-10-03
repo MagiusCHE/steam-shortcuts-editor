@@ -35,83 +35,87 @@ enum Commands {
         keys: bool,
 
         #[clap(value_names(&["format"]),long,case_insensitive = true, default_value_t = ListColumnsModes::Plain, possible_values(ListColumnsModes::variants()))]
-        /// AppID with specified format
+        /// Shows Index with specified format
+        index: ListColumnsModes,
+
+        #[clap(value_names(&["format"]),long,case_insensitive = true, default_value_t = ListColumnsModes::Plain, possible_values(ListColumnsModes::variants()))]
+        /// Shows AppID with specified format
         appid: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::Plain, possible_values(ListColumnsModes::variants()))]
-        /// AppName with specified format
+        /// Shows AppName with specified format
         appname: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// Exe with specified format
+        /// Shows Exe with specified format
         exe: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// Icon with specified format
+        /// Shows Icon with specified format
         icon: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// AllowDesktopConfig with specified format
+        /// Shows AllowDesktopConfig with specified format
         allow_desktop_config: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// AllowOverlay with specified format
+        /// Shows AllowOverlay with specified format
         allow_overlay: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// Devkit with specified format
+        /// Shows Devkit with specified format
         devkit: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// DevkitGameId with specified format
+        /// Shows DevkitGameId with specified format
         devkit_game_id: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// DevkitOverrideAppId with specified format
+        /// Shows DevkitOverrideAppId with specified format
         devkit_override_app_id: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// FlatpakAppId with specified format
+        /// Shows FlatpakAppId with specified format
         flatpak_app_id: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// IsHidden with specified format
+        /// Shows IsHidden with specified format
         is_hidden: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// LastPlayTime with specified format
+        /// Shows LastPlayTime with specified format
         last_play_time: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// LastPlayTime in "YYYY/MM/DD, hh:mm:ss UTC" with specified format
+        /// Shows LastPlayTime in "YYYY/MM/DD, hh:mm:ss UTC" with specified format
         last_play_time_utc: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// LastPlayTime in "YYYY/MM/DD, hh:mm:ss" (Localtime) with specified format
+        /// Shows LastPlayTime in "YYYY/MM/DD, hh:mm:ss" (Localtime) with specified format
         last_play_time_fmt: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// LastPlayTime in ISO with specified format
+        /// Shows LastPlayTime in ISO with specified format
         last_play_time_iso: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// LaunchOptions with specified format
+        /// Shows LaunchOptions with specified format
         launch_options: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// OpenVR with specified format
+        /// Shows OpenVR with specified format
         open_vr: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// ShortcutPath with specified format
+        /// Shows ShortcutPath with specified format
         shortcut_path: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// StartDir with specified format
+        /// Shows StartDir with specified format
         start_dir: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
-        /// Tags with specified format
+        /// Shows Tags with specified format
         tags: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
@@ -200,6 +204,7 @@ macro_rules! format_column_output {
 fn output_list(args: &Args, scs: &Shortcuts) {
     let Commands::List {
         separator,
+        index,
         appid,
         appname,
         exe,
@@ -230,10 +235,17 @@ fn output_list(args: &Args, scs: &Shortcuts) {
                 format_column_output!(
                     keys,
                     all,
+                    index,
+                    sc.index,
+                    "{}"
+                )
+                .chain(format_column_output!(
+                    keys,
+                    all,
                     allow_desktop_config,
                     sc.allow_desktop_config,
                     "{}"
-                )
+                ))
                 .chain(format_column_output!(
                     keys,
                     all,
