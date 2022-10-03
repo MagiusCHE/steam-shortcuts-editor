@@ -212,7 +212,7 @@ impl<'a> Iterator for ShortcutIter<'a> {
 
 macro_rules! copy_shortcut_param {
     ($m:expr,$l:ty,$ll:expr,$n:expr,$d:expr) => {
-        TryInto::<$l>::try_into($m.get($n).unwrap_or(&$ll($d))).unwrap()
+        TryInto::<$l>::try_into($m.get($n.to_lowercase().as_str()).unwrap_or(&$ll($d))).unwrap()
     };
 }
 
@@ -233,7 +233,7 @@ impl TryFrom<(&str, &VdfMap)> for Shortcut {
                 map,
                 String,
                 Value::String,
-                "DevkitGameID",
+                "devkitgameid",
                 "".to_owned()
             ),
             open_vr: copy_shortcut_param!(map, u32, Value::UInt32, "OpenVR", 0),
@@ -241,7 +241,7 @@ impl TryFrom<(&str, &VdfMap)> for Shortcut {
                 map,
                 String,
                 Value::String,
-                "LaunchOptions",
+                "launchoptions",
                 "".to_owned()
             ),
             exe: copy_shortcut_param!(map, String, Value::String, "exe", "".to_owned()),
@@ -251,15 +251,15 @@ impl TryFrom<(&str, &VdfMap)> for Shortcut {
                 map,
                 String,
                 Value::String,
-                "FlatpakAppID",
+                "flatpakappid",
                 "".to_owned()
             ),
-            start_dir: copy_shortcut_param!(map, String, Value::String, "StartDir", "".to_owned()),
+            start_dir: copy_shortcut_param!(map, String, Value::String, "startdir", "".to_owned()),
             allow_desktop_config: copy_shortcut_param!(
                 map,
                 u32,
                 Value::UInt32,
-                "AllowDesktopConfig",
+                "allowdesktopconfig",
                 0
             ),
             appname: copy_shortcut_param!(
@@ -274,20 +274,20 @@ impl TryFrom<(&str, &VdfMap)> for Shortcut {
                 map,
                 String,
                 Value::String,
-                "ShortcutPath",
+                "shortcutpath",
                 "".to_owned()
             ),
-            is_hidden: copy_shortcut_param!(map, u32, Value::UInt32, "IsHidden", 0),
-            allow_overlay: copy_shortcut_param!(map, u32, Value::UInt32, "AllowOverlay", 0),
+            is_hidden: copy_shortcut_param!(map, u32, Value::UInt32, "ishidden", 0),
+            allow_overlay: copy_shortcut_param!(map, u32, Value::UInt32, "allowoverlay", 0),
             devkit_override_app_id: copy_shortcut_param!(
                 map,
                 u32,
                 Value::UInt32,
-                "DevkitOverrideAppID",
+                "devkitoverrideappid",
                 0
             ),
             tags: copy_shortcut_param!(map, Vec<String>, Value::Map, "tags", HashMap::new()),
-            last_play_time: copy_shortcut_param!(map, u32, Value::UInt32, "LastPlayTime", 0),
+            last_play_time: copy_shortcut_param!(map, u32, Value::UInt32, "lastplaytime", 0),
         })
     }
 }
@@ -319,7 +319,7 @@ fn consume_map_item(buffer: &[u8], index: &mut usize) -> Option<(String, Value)>
 fn consume_map(buffer: &[u8], index: &mut usize) -> Option<VdfMap> {
     let mut map = VdfMap::new();
     while let Some((key, value)) = consume_map_item(buffer, index) {
-        map.insert(key, value);
+        map.insert(key.to_lowercase(), value);
     }
     Some(map)
 }
@@ -335,9 +335,10 @@ fn consume_u32(buffer: &[u8], index: &mut usize) -> Option<u32> {
 
 fn consume_string(buffer: &[u8], index: &mut usize) -> Option<String> {
     let mut word = String::new();
+    //println!("[{:x}] Consume string starts", *index);
     loop {
         //we need to handle utf-8 here
-
+        
         match consume_byte(buffer, index) {
             Some(0) => break,
             Some(c) => {
@@ -381,6 +382,7 @@ fn consume_string(buffer: &[u8], index: &mut usize) -> Option<String> {
                         return None;
                     }
                 } else {
+                    //println!("[{:x}] Consume string push {:x} to {:?}", *index, c, word);
                     word.push(c as char)
                 }
             }
@@ -388,6 +390,7 @@ fn consume_string(buffer: &[u8], index: &mut usize) -> Option<String> {
             _ => return None,
         }
     }
+    //println!("[{:x}] Consumed string {:?}", *index,word);
     Some(word)
 }
 
