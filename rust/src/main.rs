@@ -34,7 +34,7 @@ enum Commands {
         /// Show key for each value in table output
         keys: bool,
 
-        #[clap(value_names(&["format"]),long,case_insensitive = true, default_value_t = ListColumnsModes::Plain, possible_values(ListColumnsModes::variants()))]
+        #[clap(value_names(&["format"]),long,case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
         /// Shows Index with specified format
         index: ListColumnsModes,
 
