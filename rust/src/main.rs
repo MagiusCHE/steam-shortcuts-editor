@@ -29,13 +29,18 @@ enum Commands {
         #[clap(long, default_value = " ")]
         /// Table output columns separator
         separator: String,
+
+        #[clap(long)]
+        /// Show key for each value in table output
+        keys: bool,
+
         #[clap(value_names(&["format"]),long,case_insensitive = true, default_value_t = ListColumnsModes::Plain, possible_values(ListColumnsModes::variants()))]
         /// AppID with specified format
-        app_id: ListColumnsModes,
+        appid: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::Plain, possible_values(ListColumnsModes::variants()))]
         /// AppName with specified format
-        app_name: ListColumnsModes,
+        appname: ListColumnsModes,
 
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
         /// Exe with specified format
@@ -84,7 +89,7 @@ enum Commands {
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
         /// LastPlayTime in "YYYY/MM/DD, hh:mm:ss" (Localtime) with specified format
         last_play_time_fmt: ListColumnsModes,
-        
+
         #[clap(value_names(&["format"]),long, case_insensitive = true, default_value_t = ListColumnsModes::None, possible_values(ListColumnsModes::variants()))]
         /// LastPlayTime in ISO with specified format
         last_play_time_iso: ListColumnsModes,
@@ -174,14 +179,18 @@ fn main() -> Result<(), Error> {
 }
 
 macro_rules! format_column_output {
-    ($a:expr,$b:expr,$c:expr,$d:expr) => {
+    ($keys:expr,$all:expr,$b:expr,$c:expr,$d:expr) => {
         once(
-            match if $a != &ListColumnsModes::None {
-                $a
+            match if $all != &ListColumnsModes::None {
+                $all
             } else {
                 $b
             } {
-                ListColumnsModes::Plain => Some(format!($d, $c)),
+                ListColumnsModes::Plain => Some(if *$keys {
+                    format!(concat!(stringify!($b), " = ", $d), $c)
+                } else {
+                    format!($d, $c)
+                }),
                 _ => None,
             },
         )
@@ -191,8 +200,8 @@ macro_rules! format_column_output {
 fn output_list(args: &Args, scs: &Shortcuts) {
     let Commands::List {
         separator,
-        app_id,
-        app_name,
+        appid,
+        appname,
         exe,
         icon,
         allow_desktop_config,
@@ -212,93 +221,125 @@ fn output_list(args: &Args, scs: &Shortcuts) {
         start_dir,
         tags,
         all,
+        keys,
     } = &args.command;
-
     println!(
         "{}",
         scs.iter()
             .map(|sc| {
-                format_column_output!(all, app_id, sc.appid, "{}")
-                    .chain(format_column_output!(all, app_name, sc.appname, "{:?}"))
-                    .chain(format_column_output!(all, exe, sc.exe, "{:?}"))
-                    .chain(format_column_output!(all, icon, sc.icon, "{:?}"))
-                    .chain(format_column_output!(
-                        all,
-                        allow_desktop_config,
-                        sc.allow_desktop_config,
-                        "{}"
-                    ))
-                    .chain(format_column_output!(
-                        all,
-                        allow_overlay,
-                        sc.allow_overlay,
-                        "{}"
-                    ))
-                    .chain(format_column_output!(all, devkit, sc.devkit, "{}"))
-                    .chain(format_column_output!(
-                        all,
-                        devkit_override_app_id,
-                        sc.devkit_override_app_id,
-                        "{}"
-                    ))
-                    .chain(format_column_output!(
-                        all,
-                        flatpak_app_id,
-                        sc.flatpak_app_id,
-                        "{}"
-                    ))
-                    .chain(format_column_output!(
-                        all,
-                        devkit_game_id,
-                        sc.devkit_game_id,
-                        "{}"
-                    ))
-                    .chain(format_column_output!(all, is_hidden, sc.is_hidden, "{}"))
-                    .chain(format_column_output!(
-                        all,
-                        last_play_time,
-                        sc.last_play_time,
-                        "{}"
-                    ))
-                    .chain(format_column_output!(
-                        all,
-                        last_play_time_utc,
-                        DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(sc.last_play_time as i64, 0),Utc),
-                        "\"{}\""
-                    ))
-                    .chain(format_column_output!(
-                        all,
-                        last_play_time_fmt,
+                format_column_output!(
+                    keys,
+                    all,
+                    allow_desktop_config,
+                    sc.allow_desktop_config,
+                    "{}"
+                )
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    allow_overlay,
+                    sc.allow_overlay,
+                    "{}"
+                ))
+                .chain(format_column_output!(keys, all, appid, sc.appid, "{}"))
+                .chain(format_column_output!(
+                    keys, all, appname, sc.appname, "\"{}\""
+                ))
+                .chain(format_column_output!(keys, all, devkit, sc.devkit, "{}"))
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    devkit_game_id,
+                    sc.devkit_game_id,
+                    "{}"
+                ))
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    devkit_override_app_id,
+                    sc.devkit_override_app_id,
+                    "{}"
+                ))                
+                .chain(format_column_output!(keys, all, exe, sc.exe, "\"{}\""))
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    flatpak_app_id,
+                    sc.flatpak_app_id,
+                    "\"{}\""
+                ))
+                .chain(format_column_output!(keys, all, icon, sc.icon, "\"{}\""))
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    is_hidden,
+                    sc.is_hidden,
+                    "{}"
+                ))
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    last_play_time,
+                    sc.last_play_time,
+                    "{}"
+                ))
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    last_play_time_fmt,
+                    NaiveDateTime::from_timestamp(sc.last_play_time as i64, 0),
+                    "\"{}\""
+                ))
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    last_play_time_iso,
+                    NaiveDateTime::from_timestamp(sc.last_play_time as i64, 0),
+                    "\"{}\""
+                ))
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    last_play_time_utc,
+                    DateTime::<Utc>::from_utc(
                         NaiveDateTime::from_timestamp(sc.last_play_time as i64, 0),
-                        "\"{}\""
-                    ))
-                    .chain(format_column_output!(
-                        all,
-                        last_play_time_iso,
-                        NaiveDateTime::from_timestamp(sc.last_play_time as i64, 0),
-                        "{:?}"
-                    ))
-                    .chain(format_column_output!(
-                        all,
-                        launch_options,
-                        sc.launch_options,
-                        "{:?}"
-                    ))
-                    .chain(format_column_output!(all, open_vr, sc.open_vr, "{}"))
-                    .chain(format_column_output!(
-                        all,
-                        shortcut_path,
-                        sc.shortcut_path,
-                        "{:?}"
-                    ))
-                    .chain(format_column_output!(all, start_dir, sc.start_dir, "{:?}"))
-                    .chain(format_column_output!(all, tags, sc.tags, "{:?}"))
-                    // shortcut_path,
-                    // start_dir,
-                    // tags
-                    .filter_map(|e| e)
-                    .collect::<Vec<String>>()
-                    .join(separator)
+                        Utc
+                    ),
+                    "\"{}\""
+                ))                
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    launch_options,
+                    sc.launch_options,
+                    "\"{}\""
+                ))
+                .chain(format_column_output!(keys, all, open_vr, sc.open_vr, "{}"))
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    shortcut_path,
+                    sc.shortcut_path,
+                    "\"{}\""
+                ))
+                .chain(format_column_output!(
+                    keys,
+                    all,
+                    start_dir,
+                    sc.start_dir,
+                    "\"{}\""
+                ))
+                .chain(format_column_output!(keys, all, tags, sc.tags, "{:?}"))
+                .filter_map(|e| e)
+                .collect::<Vec<String>>()
+                .join( 
+                    /*if *keys {
+                        format!(stringify!(",{}"),separator)
+                    } else {
+                        format!("{}",separator)
+                    }.as_str()*/
+                    separator
+                )
             })
             .collect::<Vec<String>>()
             .join("\n")
