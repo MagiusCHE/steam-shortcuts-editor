@@ -130,7 +130,7 @@ public:
     Loggable(string log_name)
     {
         Loggable::log_name = log_name;
-        log("{}", "Constructed");
+        //log("{}", "Constructed");
     }
 
 protected:
