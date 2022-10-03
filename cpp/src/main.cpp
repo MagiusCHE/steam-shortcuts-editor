@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     {
         string ifile;
         string separator = " ";
-        map<string, string>
+        unordered_map<string, string>
             format_switches;
 
         po::options_description desc("Allowed options");
@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
         desc.add_options()("separator", po::value(&separator), "Table output columns separator");
         desc.add_options()("keys", "Show key for each value in table output");
 
+        set_format_switches$("index", "Index", "None");
         set_format_switches$("allow_desktop_config", "AllowDesktopConfig", "None");
         set_format_switches$("allow_overlay", "AllowOverlay", "None");
         set_format_switches$("appid", "AppId", "Plain");

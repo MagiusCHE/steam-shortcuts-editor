@@ -85,7 +85,8 @@ int Shortcuts::parse()
         for (const auto &elem : others.v)
         {
             // log("In map first is {}", elem.first);
-            shortcuts[elem.first] = Shortcut(elem.first, get<shortcuts::Map>(elem.second));
+            auto index = (uint32_t)stoi(elem.first);
+            shortcuts[index] = Shortcut(index, get<shortcuts::Map>(elem.second));
         }
     }
 
@@ -259,10 +260,10 @@ optional<Value> map_optional_find(const shortcuts::Map &map, const string &index
     return {};
 }
 
-Shortcut::Shortcut(string index, const shortcuts::Map &map) : Shortcut()
+Shortcut::Shortcut(uint32_t index, const shortcuts::Map &map) : Shortcut()
 {
     //log("Dump map: {}", vdfmap_to_string(map));
-    Shortcut::index = index;
+    props["index"] = index;
     copy_shortcut_param$(allow_desktop_config, allowdesktopconfig, uint32_t, 0);
     copy_shortcut_param$(allow_overlay, allowoverlay, uint32_t, 0);
     copy_shortcut_param$(appid, appid, uint32_t, 0);

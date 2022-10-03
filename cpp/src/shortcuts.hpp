@@ -31,29 +31,11 @@ namespace shortcuts
     public:
         // Touble (map) request default empty constructor???
         Shortcut();
-        Shortcut(string index, const shortcuts::Map &map);
+        Shortcut(uint32_t index, const shortcuts::Map &map);
         ~Shortcut()
         {
         }
-        map<string, variant<string, uint32_t>> props;
-        string index;
-        /*string devkit_game_id;
-        uint32_t open_vr;
-        string launch_options;
-        string exe;
-        string icon;
-        uint32_t devkit;
-        string flatpak_app_id;
-        string start_dir;
-        uint32_t allow_desktop_config;
-        string appname;
-        uint32_t appid;
-        string shortcut_path;
-        uint32_t is_hidden;
-        uint32_t allow_overlay;
-        uint32_t devkit_override_app_id;
-        vector<string> tags;
-        uint32_t last_play_time;*/
+        unordered_map<string, variant<string, uint32_t>> props;
     };
 
     //
@@ -74,7 +56,7 @@ namespace shortcuts
         optional<string> consume_string(ifstream &file);
         optional<uint32_t> consume_uint32(ifstream &file);
         optional<uint8_t> peek_byte(ifstream &file);
-        map<string, Shortcut> shortcuts;
+        map<uint32_t, Shortcut> shortcuts;
 
     public:
         Shortcuts(const string source);
