@@ -4,12 +4,16 @@
 ## Develop
 ### Dependencies: 
 - (optional) `yarn`
-Steam Deck actually has glibc 2.33 and we need 2.34.
-- `rustup target add x86_64-unknown-linux-musl` 
-- or `yarn install`
+- `boost 1.79.0+`
+- `glibc 2.33+` 
+- `cmake 3.24.1+` (yarn script will use `/usr/bin/cmake`)
+- `clang 14.0.6+` (yarn script will use `/usn/bin/clang`)
 ### Compile
-- Debug: `cargo build` or `yarn build:debug`
-  - Artifact will be generated into `target/debug/steam-shortcuts-editor`
-  - Run target in debug: `cargo run` or `yarn debug`
-- Release: `cargo build --release` or `yarn build:release`
-  - Artifact will be generated into `target/x86_64-unknown-linux-musl/release/steam-shortcuts-editor`
+- Debug: `yarn build:debug`
+  - Artifact will be generated into `build/Debug/steam-shortcuts-editor`
+  - Run target in debug: `yarn debug`
+- Release: `yarn build:release`
+  - Artifact will be generated into `build/Release/steam-shortcuts-editor`
+
+### Run Debug
+- `yarn debug`
