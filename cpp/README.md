@@ -1,7 +1,6 @@
 # Steam Shortcuts Editor
 ## Usage
 - see [../README.md](../README.md)
-
 ## Develop
 ### Dependencies: 
 - (optional) `yarn`

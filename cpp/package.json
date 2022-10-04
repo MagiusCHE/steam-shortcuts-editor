@@ -4,8 +4,8 @@
   "main": "none",
   "license": "MIT",
   "scripts": {
-    "build:debug":"mkdir -p ./build && cmake --build ./build --config Debug --target all",
-    "build:release": "echo \"This does not work.\" || mkdir -p ./build && cmake --build ./build --config Release --target all",
-    "debug":"yarn build:debug && build/steam-shortcuts-editor"    
+    "build:debug":"/usr/bin/cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER:FILEPATH=/usr/bin/clang -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++ -S./ -B./build/Debug -G Ninja && cmake --build ./build/Debug --config Debug --target all",
+    "build:release": "/usr/bin/cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_C_COMPILER:FILEPATH=/usr/bin/clang -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++ -S./ -B./build/Release -G Ninja && cmake --build ./build/Release --config Release --target all",
+    "debug":"yarn build:debug && build/Debug/steam-shortcuts-editor"    
   }
 }
