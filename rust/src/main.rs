@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2022, Magius(CHE)
+ *
+ * This software is provided "as-is", without any express or implied warranty. In no event
+ * will the authors be held liable for any damages arising from the use of this software.
+ * Read the LICENSE file for more details.
+ *
+ * @author: Magius(CHE) - magiusche@magius.it
+ */
+
 use chrono::{DateTime, NaiveDateTime, Utc};
 use clap::{Parser, Subcommand, ValueEnum};
 use std::{
@@ -122,7 +132,7 @@ enum Commands {
         /// Override all columns format with the specified one
         all: ListColumnsModes,
     },
-    /// Display version
+    /// Print version information
     Version,
 }
 
@@ -147,7 +157,13 @@ fn main() -> Result<(), Error> {
             let scs = load_shortcuts(shortcuts_path)?;
             output_list(&args, &scs);
         }
-        Commands::Version => todo!(),
+        Commands::Version =>println!(
+                    "{} {} by {}, {}",
+                    env!("CARGO_PKG_NAME"),
+                    env!("CARGO_PKG_VERSION"),
+                    env!("CARGO_PKG_AUTHORS"),
+                    env!("CARGO_PKG_HOMEPAGE")
+                ),
     }
 
     // if args.shortcuts_path.is_none() {
