@@ -1,5 +1,108 @@
 use std::{collections::HashMap, str::from_utf8};
 
+#[derive(Debug)]
+pub enum ShortcutProp {
+    UInt32(u32),
+    String(String),
+    Strings(Vec<String>),
+    None,
+}
+
+impl Default for ShortcutProp {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl Default for &ShortcutProp {
+    fn default() -> Self {
+        &ShortcutProp::None
+    }
+}
+
+// impl ShortcutProp {
+//     fn into_inner<T>(self) -> T
+//     where
+//         u32: Into<T>,
+//     {
+//         match self {
+//             Self::UInt32(n) => n.into(),
+//             _ => panic!("Cannot convert {:?} to u32.", self),
+//         }
+//     }
+// }
+impl TryFrom<&ShortcutProp> for u32 {
+    type Error = String;
+
+    fn try_from(u: &ShortcutProp) -> Result<Self, Self::Error> {
+        match u {
+            ShortcutProp::UInt32(n) => Ok(*n),
+            _ => Err("Value out of range".to_owned()),
+        }
+    }
+}
+impl TryFrom<&ShortcutProp> for String {
+    type Error = String;
+
+    fn try_from(u: &ShortcutProp) -> Result<Self, Self::Error> {
+        match u {
+            ShortcutProp::String(n) => Ok(n.clone()),
+            _ => Err("Value out of range".to_owned()),
+        }
+    }
+}
+impl TryFrom<&ShortcutProp> for Vec<String> {
+    type Error = String;
+
+    fn try_from(u: &ShortcutProp) -> Result<Self, Self::Error> {
+        match u {
+            ShortcutProp::Strings(n) => Ok(n.iter().map(|s| s.clone()).collect()),
+            _ => Err("Value out of range".to_owned()),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ShortcutPropInfo {
+    switchname: &'static str,
+    type_default: ShortcutProp,
+    name: &'static str,
+}
+
+impl ShortcutPropInfo {
+    pub fn new(switchname: &'static str, type_default: ShortcutProp) -> Self {
+        Self {
+            switchname,
+            type_default,
+            name: Box::leak(switchname.to_lowercase().replace("_", "").into_boxed_str()),
+        }
+    }
+}
+use lazy_static::lazy_static;
+
+lazy_static! {
+    pub static ref SHORTCUT_PROP_INFO: [ShortcutPropInfo; 18] = [
+        ShortcutPropInfo::new("index", ShortcutProp::UInt32(0)),
+        ShortcutPropInfo::new("allow_desktop_config", ShortcutProp::UInt32(0)),
+        ShortcutPropInfo::new("allow_overlay", ShortcutProp::UInt32(0)),
+        ShortcutPropInfo::new("appid", ShortcutProp::UInt32(0)),
+        ShortcutPropInfo::new("appname", ShortcutProp::String("ERROR".to_owned())),
+        ShortcutPropInfo::new("devkit_game_id", ShortcutProp::String("ERROR".to_owned())),
+        ShortcutPropInfo::new("devkit_override_app_id", ShortcutProp::UInt32(0)),
+        ShortcutPropInfo::new("devkit", ShortcutProp::UInt32(0)),
+        ShortcutPropInfo::new("exe", ShortcutProp::String("ERROR".to_owned())),
+        ShortcutPropInfo::new("flatpak_app_id", ShortcutProp::String("".to_owned())),
+        ShortcutPropInfo::new("icon", ShortcutProp::String("".to_owned())),
+        ShortcutPropInfo::new("is_hidden", ShortcutProp::UInt32(0)),
+        ShortcutPropInfo::new("last_play_time", ShortcutProp::UInt32(0)),
+        ShortcutPropInfo::new("launch_options", ShortcutProp::String("".to_owned())),
+        ShortcutPropInfo::new("open_vr", ShortcutProp::UInt32(0)),
+        ShortcutPropInfo::new("shortcut_path", ShortcutProp::String("".to_owned())),
+        ShortcutPropInfo::new("start_dir", ShortcutProp::String("".to_owned())),
+        ShortcutPropInfo::new("tags", ShortcutProp::Strings(vec![])),
+    ];
+}
+
 #[repr(u8)]
 enum VdfMapItemType {
     Map = 0x00,
@@ -139,7 +242,7 @@ impl Shortcuts {
     }
     pub fn at(&self, index: usize) -> Option<Shortcut> {
         if let Value::Map(m) = &self.shortcuts {
-            if let Ok(ret) = TryInto::<Shortcut>::try_into((index.to_string().as_str(), m)) {
+            if let Ok(ret) = TryInto::<Shortcut>::try_into((index as u32, m)) {
                 return Some(ret);
             }
         }
@@ -155,8 +258,8 @@ impl Shortcuts {
 
 #[derive(Debug)]
 pub struct Shortcut {
-    pub index: String,
-    pub devkit_game_id: String,
+    pub props: HashMap<&'static str, ShortcutProp>,
+    /*devkit_game_id: String,
     pub open_vr: u32,
     pub launch_options: String,
     pub exe: String,
@@ -172,7 +275,7 @@ pub struct Shortcut {
     pub allow_overlay: u32,
     pub devkit_override_app_id: u32,
     pub tags: Vec<String>,
-    pub last_play_time: u32,
+    pub last_play_time: u32,*/
 }
 
 impl Shortcuts {
@@ -210,24 +313,53 @@ impl<'a> Iterator for ShortcutIter<'a> {
     }
 }
 
-macro_rules! copy_shortcut_param {
+/*macro_rules! copy_shortcut_param {
     ($m:expr,$l:ty,$ll:expr,$n:expr,$d:expr) => {
         TryInto::<$l>::try_into($m.get($n.to_lowercase().as_str()).unwrap_or(&$ll($d))).unwrap()
     };
-}
+}*/
 
-impl TryFrom<(&str, &VdfMap)> for Shortcut {
+impl TryFrom<(u32, &VdfMap)> for Shortcut {
     type Error = String;
 
-    fn try_from((index, mainmap): (&str, &VdfMap)) -> Result<Self, Self::Error> {
+    fn try_from((index, mainmap): (u32, &VdfMap)) -> Result<Self, Self::Error> {
         //println!("From {:?}", mainmap);
         let map;
-        if let Some(Value::Map(submap)) = mainmap.get(index) {
+        if let Some(Value::Map(submap)) = mainmap.get(format!("{}", index).as_str()) {
             map = submap
         } else {
             return Err(format!("Missing shortcut at {}", index));
         }
-        Ok(Self {
+
+        let mut props: HashMap<&'static str, ShortcutProp> = HashMap::new();
+
+        SHORTCUT_PROP_INFO.iter().for_each(|info| {
+            let val = match &info.type_default {
+                ShortcutProp::UInt32(def) => ShortcutProp::UInt32(
+                    TryInto::<u32>::try_into(map.get(info.name).unwrap_or(&Value::UInt32(*def)))
+                        .unwrap(),
+                ),
+                ShortcutProp::String(def) => ShortcutProp::String(
+                    TryInto::<String>::try_into(
+                        map.get(info.name).unwrap_or(&Value::String(def.to_owned())),
+                    )
+                    .unwrap(),
+                ),
+                ShortcutProp::Strings(_) => ShortcutProp::Strings(
+                    TryInto::<Vec<String>>::try_into(
+                        map.get(info.name).unwrap_or(&Value::Map(HashMap::new())),
+                    )
+                    .unwrap(),
+                ),
+                _ => unreachable!(),
+            };
+            props.insert(info.switchname, val);
+            //*props.entry(info.switchname).or_insert(val) = val;
+        });
+
+        Ok(Self { props })
+
+        /*Ok(Self {
             index: index.to_owned(),
             devkit_game_id: copy_shortcut_param!(
                 map,
@@ -288,7 +420,7 @@ impl TryFrom<(&str, &VdfMap)> for Shortcut {
             ),
             tags: copy_shortcut_param!(map, Vec<String>, Value::Map, "tags", HashMap::new()),
             last_play_time: copy_shortcut_param!(map, u32, Value::UInt32, "lastplaytime", 0),
-        })
+        })*/
     }
 }
 
@@ -338,7 +470,7 @@ fn consume_string(buffer: &[u8], index: &mut usize) -> Option<String> {
     //println!("[{:x}] Consume string starts", *index);
     loop {
         //we need to handle utf-8 here
-        
+
         match consume_byte(buffer, index) {
             Some(0) => break,
             Some(c) => {
