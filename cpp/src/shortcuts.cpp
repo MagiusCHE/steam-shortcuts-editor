@@ -268,9 +268,9 @@ Shortcut::Shortcut(uint32_t index, const shortcuts::Map &map) : Shortcut()
     copy_shortcut_param$(allow_overlay, allowoverlay, uint32_t, 0);
     copy_shortcut_param$(appid, appid, uint32_t, 0);
     copy_shortcut_param$(appname, appname, string, "ERROR");
+    copy_shortcut_param$(devkit, devkit, uint32_t, 0);
     copy_shortcut_param$(devkit_game_id, devkitgameid, string, "");
     copy_shortcut_param$(devkit_override_app_id, devkitoverrideappid, uint32_t, 0);
-    copy_shortcut_param$(devkit, devkit, uint32_t, 0);
     copy_shortcut_param$(exe, exe, string, "ERROR");
     copy_shortcut_param$(flatpak_app_id, flatpakappid, string, "");
     copy_shortcut_param$(icon, icon, string, "");
