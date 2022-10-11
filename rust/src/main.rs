@@ -41,6 +41,10 @@ enum Commands {
         separator: String,
 
         #[arg(long)]
+        /// Export list in JSON format. This will ignore "--separator", "--keys", "--last_play_time_*".
+        json: bool,
+
+        #[arg(long)]
         /// Show key for each value in table output
         keys: bool,
 
@@ -132,6 +136,12 @@ enum Commands {
         /// Override all columns format with the specified one
         all: ListColumnsModes,
     },
+    /// Change entries structure based on JSON Input
+    Edit {
+        /// Path to json contains the entries
+        #[arg(long)]
+        json: String,
+    },
     /// Print version information
     Version,
 }
@@ -157,36 +167,15 @@ fn main() -> Result<(), Error> {
             let scs = load_shortcuts(shortcuts_path)?;
             output_list(&args, &scs);
         }
-        Commands::Version =>println!(
-                    "{} {} by {}, {}",
-                    env!("CARGO_PKG_NAME"),
-                    env!("CARGO_PKG_VERSION"),
-                    env!("CARGO_PKG_AUTHORS"),
-                    env!("CARGO_PKG_HOMEPAGE")
-                ),
+        Commands::Version => println!(
+            "{} {} by {}, {}",
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION"),
+            env!("CARGO_PKG_AUTHORS"),
+            env!("CARGO_PKG_HOMEPAGE")
+        ),
+        _ => todo!("Uninplmeneted coommand {:?}", &args.command),
     }
-
-    // if args.shortcuts_path.is_none() {
-    //     match args.command {
-    //         Commands::Version => {
-    //             println!(
-    //                 "{} {} by {}, {}",
-    //                 std::env::current_exe()
-    //                     .unwrap()
-    //                     .file_name()
-    //                     .unwrap()
-    //                     .to_str()
-    //                     .unwrap(),
-    //                 env!("CARGO_PKG_VERSION"),
-    //                 env!("CARGO_PKG_AUTHORS"),
-    //                 env!("CARGO_PKG_HOMEPAGE")
-    //             );
-    //             return Ok(());
-    //         }
-    //         _ => return Err(Error::InvalidInputFile(String::from(
-    //         "<SHORTCUTS_PATH> is missing. It must be an existining file or folder contains .../<shortcuts>.vdf"))),
-    //     }
-    // }
 
     Ok(())
 }
@@ -236,6 +225,25 @@ fn load_shortcuts(shortcuts_path: &str) -> Result<Shortcuts, Error> {
         "Error while loading file {}",
         shortcuts_path
     )))
+}
+
+macro_rules! json_column_output {
+    ($sc:expr,$keys:expr,$all:expr,$b:expr,$t:ty,$c:expr,$d:expr) => {
+        once(
+            match if $all != &ListColumnsModes::None {
+                $all
+            } else {
+                $b
+            } {
+                ListColumnsModes::Plain => {
+                    let val =
+                        TryInto::<$t>::try_into($sc.props.get($c).unwrap_or_default()).unwrap();
+                    Some(format!(concat!(stringify!($b), " = ", $d), val))
+                }
+                _ => None,
+            },
+        )
+    };
 }
 
 macro_rules! format_column_output {
@@ -309,185 +317,216 @@ fn output_list(args: &Cli, scs: &Shortcuts) {
             start_dir,
             tags,
             all,
-            keys,..
-        } => println!(
-            "{}",
-            scs.iter()
-                .map(|sc| {
-                    format_column_output!(sc, keys, all, index, String, "index", "{}")
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            allow_desktop_config,
-                            u32,
-                            "allow_desktop_config",
-                            "{}"
+            keys,
+            json,
+            ..
+        } => {
+            if *json {
+                println!(
+                    "[{}]",
+                    scs.iter()
+                        .map(|sc| format!(
+                            "{{{}}}",
+                            sc.props
+                                .iter()
+                                .map(|kv| format!(
+                                    "{:?}:{}",
+                                    kv.0,
+                                    match kv.1 {
+                                        shortcuts::ShortcutProp::UInt32(u) => u.to_string(),
+                                        shortcuts::ShortcutProp::String(s) => format!("{:?}", s),
+                                        shortcuts::ShortcutProp::Strings(s) => format!("{:?}", s),
+                                        shortcuts::ShortcutProp::None => "".to_owned(),
+                                    }
+                                ))
+                                .collect::<Vec<String>>()
+                                .join(",")
                         ))
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            allow_overlay,
-                            u32,
-                            "allow_overlay",
-                            "{}"
-                        ))
-                        .chain(format_column_output!(
-                            sc, keys, all, appid, u32, "appid", "{}"
-                        ))
-                        .chain(format_column_output!(
-                            sc, keys, all, appname, String, "appname", "\"{}\""
-                        ))
-                        .chain(format_column_output!(
-                            sc, keys, all, devkit, u32, "devkit", "{}"
-                        ))
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            devkit_game_id,
-                            String,
-                            "devkit_game_id",
-                            "{}"
-                        ))
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            devkit_override_app_id,
-                            u32,
-                            "devkit_override_app_id",
-                            "{}"
-                        ))
-                        .chain(format_column_output!(
-                            sc, keys, all, exe, String, "exe", "\"{}\""
-                        ))
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            flatpak_app_id,
-                            String,
-                            "flatpak_app_id",
-                            "\"{}\""
-                        ))
-                        .chain(format_column_output!(
-                            sc, keys, all, icon, String, "icon", "\"{}\""
-                        ))
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            is_hidden,
-                            u32,
-                            "is_hidden",
-                            "{}"
-                        ))
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            last_play_time,
-                            u32,
-                            "last_play_time",
-                            "{}"
-                        ))
-                        .chain(format_column_output_ex!(
-                            keys,
-                            all,
-                            last_play_time_fmt,
-                            NaiveDateTime::from_timestamp(
-                                TryInto::<u32>::try_into(
-                                    sc.props.get("last_play_time").unwrap_or_default()
-                                )
-                                .unwrap() as i64,
-                                0
-                            ),
-                            "\"{}\""
-                        ))
-                        .chain(format_column_output_ex!(
-                            keys,
-                            all,
-                            last_play_time_iso,
-                            NaiveDateTime::from_timestamp(
-                                TryInto::<u32>::try_into(
-                                    sc.props.get("last_play_time").unwrap_or_default()
-                                )
-                                .unwrap() as i64,
-                                0
-                            ),
-                            "\"{}\""
-                        ))
-                        .chain(format_column_output_ex!(
-                            keys,
-                            all,
-                            last_play_time_utc,
-                            DateTime::<Utc>::from_utc(
-                                NaiveDateTime::from_timestamp(
-                                    TryInto::<u32>::try_into(
-                                        sc.props.get("last_play_time").unwrap_or_default()
-                                    )
-                                    .unwrap() as i64,
-                                    0
-                                ),
-                                Utc
-                            ),
-                            "\"{}\""
-                        ))
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            launch_options,
-                            String,
-                            "launch_options",
-                            "\"{}\""
-                        ))
-                        .chain(format_column_output!(
-                            sc, keys, all, open_vr, u32, "open_vr", "{}"
-                        ))
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            shortcut_path,
-                            String,
-                            "shortcut_path",
-                            "\"{}\""
-                        ))
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            start_dir,
-                            String,
-                            "start_dir",
-                            "\"{}\""
-                        ))
-                        .chain(format_column_output!(
-                            sc,
-                            keys,
-                            all,
-                            tags,
-                            Vec<String>,
-                            "tags",
-                            "{:?}"
-                        ))
-                        .filter_map(|e| e)
                         .collect::<Vec<String>>()
-                        .join(
-                            /*if *keys {
-                                format!(stringify!(",{}"),separator)
-                            } else {
-                                format!("{}",separator)
-                            }.as_str()*/
-                            separator,
-                        )
-                })
-                .collect::<Vec<String>>()
-                .join("\n")
-        ),
+                        .join(",")
+                )
+            } else {
+                println!(
+                    "{}",
+                    scs.iter()
+                        .map(|sc| {
+                            format_column_output!(sc, keys, all, index, String, "index", "{}")
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    allow_desktop_config,
+                                    u32,
+                                    "allow_desktop_config",
+                                    "{}"
+                                ))
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    allow_overlay,
+                                    u32,
+                                    "allow_overlay",
+                                    "{}"
+                                ))
+                                .chain(format_column_output!(
+                                    sc, keys, all, appid, u32, "appid", "{}"
+                                ))
+                                .chain(format_column_output!(
+                                    sc, keys, all, appname, String, "appname", "\"{}\""
+                                ))
+                                .chain(format_column_output!(
+                                    sc, keys, all, devkit, u32, "devkit", "{}"
+                                ))
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    devkit_game_id,
+                                    String,
+                                    "devkit_game_id",
+                                    "{}"
+                                ))
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    devkit_override_app_id,
+                                    u32,
+                                    "devkit_override_app_id",
+                                    "{}"
+                                ))
+                                .chain(format_column_output!(
+                                    sc, keys, all, exe, String, "exe", "\"{}\""
+                                ))
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    flatpak_app_id,
+                                    String,
+                                    "flatpak_app_id",
+                                    "\"{}\""
+                                ))
+                                .chain(format_column_output!(
+                                    sc, keys, all, icon, String, "icon", "\"{}\""
+                                ))
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    is_hidden,
+                                    u32,
+                                    "is_hidden",
+                                    "{}"
+                                ))
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    last_play_time,
+                                    u32,
+                                    "last_play_time",
+                                    "{}"
+                                ))
+                                .chain(format_column_output_ex!(
+                                    keys,
+                                    all,
+                                    last_play_time_fmt,
+                                    NaiveDateTime::from_timestamp(
+                                        TryInto::<u32>::try_into(
+                                            sc.props.get("last_play_time").unwrap_or_default()
+                                        )
+                                        .unwrap() as i64,
+                                        0
+                                    ),
+                                    "\"{}\""
+                                ))
+                                .chain(format_column_output_ex!(
+                                    keys,
+                                    all,
+                                    last_play_time_iso,
+                                    NaiveDateTime::from_timestamp(
+                                        TryInto::<u32>::try_into(
+                                            sc.props.get("last_play_time").unwrap_or_default()
+                                        )
+                                        .unwrap() as i64,
+                                        0
+                                    ),
+                                    "\"{}\""
+                                ))
+                                .chain(format_column_output_ex!(
+                                    keys,
+                                    all,
+                                    last_play_time_utc,
+                                    DateTime::<Utc>::from_utc(
+                                        NaiveDateTime::from_timestamp(
+                                            TryInto::<u32>::try_into(
+                                                sc.props.get("last_play_time").unwrap_or_default()
+                                            )
+                                            .unwrap()
+                                                as i64,
+                                            0
+                                        ),
+                                        Utc
+                                    ),
+                                    "\"{}\""
+                                ))
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    launch_options,
+                                    String,
+                                    "launch_options",
+                                    "\"{}\""
+                                ))
+                                .chain(format_column_output!(
+                                    sc, keys, all, open_vr, u32, "open_vr", "{}"
+                                ))
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    shortcut_path,
+                                    String,
+                                    "shortcut_path",
+                                    "\"{}\""
+                                ))
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    start_dir,
+                                    String,
+                                    "start_dir",
+                                    "\"{}\""
+                                ))
+                                .chain(format_column_output!(
+                                    sc,
+                                    keys,
+                                    all,
+                                    tags,
+                                    Vec<String>,
+                                    "tags",
+                                    "{:?}"
+                                ))
+                                .filter_map(|e| e)
+                                .collect::<Vec<String>>()
+                                .join(
+                                    /*if *keys {
+                                        format!(stringify!(",{}"),separator)
+                                    } else {
+                                        format!("{}",separator)
+                                    }.as_str()*/
+                                    separator,
+                                )
+                        })
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                )
+            }
+        }
         _ => panic!("impossible"),
     }
 }
