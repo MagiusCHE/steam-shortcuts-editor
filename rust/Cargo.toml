@@ -11,3 +11,4 @@ edition = "2021"
 clap = { version = "4", features = ["derive"] }
 chrono = "0"
 lazy_static= "1"
+iter_tools= "0"

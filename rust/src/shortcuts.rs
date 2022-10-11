@@ -47,7 +47,7 @@ impl TryFrom<&ShortcutProp> for u32 {
     fn try_from(u: &ShortcutProp) -> Result<Self, Self::Error> {
         match u {
             ShortcutProp::UInt32(n) => Ok(*n),
-            _ => Err("Value out of range".to_owned()),
+            _ => Err(format!("Value out of range. Expected ShortcutProp::UInt32(n) but got {:?}", u)),
         }
     }
 }
@@ -57,7 +57,7 @@ impl TryFrom<&ShortcutProp> for String {
     fn try_from(u: &ShortcutProp) -> Result<Self, Self::Error> {
         match u {
             ShortcutProp::String(n) => Ok(n.clone()),
-            _ => Err("Value out of range".to_owned()),
+            _ => Err(format!("Value out of range. Expected ShortcutProp::String(n) but got {:?}", u)),
         }
     }
 }
@@ -67,7 +67,7 @@ impl TryFrom<&ShortcutProp> for Vec<String> {
     fn try_from(u: &ShortcutProp) -> Result<Self, Self::Error> {
         match u {
             ShortcutProp::Strings(n) => Ok(n.iter().map(|s| s.clone()).collect()),
-            _ => Err("Value out of range".to_owned()),
+            _ => Err(format!("Value out of range. Expected ShortcutProp::Strings(n) but got {:?}", u)),
         }
     }
 }
@@ -269,23 +269,6 @@ impl Shortcuts {
 #[derive(Debug)]
 pub struct Shortcut {
     pub props: HashMap<&'static str, ShortcutProp>,
-    /*devkit_game_id: String,
-    pub open_vr: u32,
-    pub launch_options: String,
-    pub exe: String,
-    pub icon: String,
-    pub devkit: u32,
-    pub flatpak_app_id: String,
-    pub start_dir: String,
-    pub allow_desktop_config: u32,
-    pub appname: String,
-    pub appid: u32,
-    pub shortcut_path: String,
-    pub is_hidden: u32,
-    pub allow_overlay: u32,
-    pub devkit_override_app_id: u32,
-    pub tags: Vec<String>,
-    pub last_play_time: u32,*/
 }
 
 impl Shortcuts {
@@ -323,12 +306,6 @@ impl<'a> Iterator for ShortcutIter<'a> {
     }
 }
 
-/*macro_rules! copy_shortcut_param {
-    ($m:expr,$l:ty,$ll:expr,$n:expr,$d:expr) => {
-        TryInto::<$l>::try_into($m.get($n.to_lowercase().as_str()).unwrap_or(&$ll($d))).unwrap()
-    };
-}*/
-
 impl TryFrom<(u32, &VdfMap)> for Shortcut {
     type Error = String;
 
@@ -342,8 +319,13 @@ impl TryFrom<(u32, &VdfMap)> for Shortcut {
         }
 
         let mut props: HashMap<&'static str, ShortcutProp> = HashMap::new();
-
+        
+        props.insert("index", ShortcutProp::UInt32(index));
+        
         SHORTCUT_PROP_INFO.iter().for_each(|info| {
+            if info.name == "index"{                               
+                return
+            }
             let val = match &info.type_default {
                 ShortcutProp::UInt32(def) => ShortcutProp::UInt32(
                     TryInto::<u32>::try_into(map.get(info.name).unwrap_or(&Value::UInt32(*def)))
@@ -368,69 +350,6 @@ impl TryFrom<(u32, &VdfMap)> for Shortcut {
         });
 
         Ok(Self { props })
-
-        /*Ok(Self {
-            index: index.to_owned(),
-            devkit_game_id: copy_shortcut_param!(
-                map,
-                String,
-                Value::String,
-                "devkitgameid",
-                "".to_owned()
-            ),
-            open_vr: copy_shortcut_param!(map, u32, Value::UInt32, "OpenVR", 0),
-            launch_options: copy_shortcut_param!(
-                map,
-                String,
-                Value::String,
-                "launchoptions",
-                "".to_owned()
-            ),
-            exe: copy_shortcut_param!(map, String, Value::String, "exe", "".to_owned()),
-            icon: copy_shortcut_param!(map, String, Value::String, "icon", "".to_owned()),
-            devkit: copy_shortcut_param!(map, u32, Value::UInt32, "Devkit", 0),
-            flatpak_app_id: copy_shortcut_param!(
-                map,
-                String,
-                Value::String,
-                "flatpakappid",
-                "".to_owned()
-            ),
-            start_dir: copy_shortcut_param!(map, String, Value::String, "startdir", "".to_owned()),
-            allow_desktop_config: copy_shortcut_param!(
-                map,
-                u32,
-                Value::UInt32,
-                "allowdesktopconfig",
-                0
-            ),
-            appname: copy_shortcut_param!(
-                map,
-                String,
-                Value::String,
-                "appname",
-                "ERROR".to_owned()
-            ),
-            appid: copy_shortcut_param!(map, u32, Value::UInt32, "appid", 0),
-            shortcut_path: copy_shortcut_param!(
-                map,
-                String,
-                Value::String,
-                "shortcutpath",
-                "".to_owned()
-            ),
-            is_hidden: copy_shortcut_param!(map, u32, Value::UInt32, "ishidden", 0),
-            allow_overlay: copy_shortcut_param!(map, u32, Value::UInt32, "allowoverlay", 0),
-            devkit_override_app_id: copy_shortcut_param!(
-                map,
-                u32,
-                Value::UInt32,
-                "devkitoverrideappid",
-                0
-            ),
-            tags: copy_shortcut_param!(map, Vec<String>, Value::Map, "tags", HashMap::new()),
-            last_play_time: copy_shortcut_param!(map, u32, Value::UInt32, "lastplaytime", 0),
-        })*/
     }
 }
 

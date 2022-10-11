@@ -10,6 +10,7 @@
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use clap::{Parser, Subcommand, ValueEnum};
+use iter_tools::Itertools;
 use std::{
     fmt::Display,
     fs::File,
@@ -227,25 +228,6 @@ fn load_shortcuts(shortcuts_path: &str) -> Result<Shortcuts, Error> {
     )))
 }
 
-macro_rules! json_column_output {
-    ($sc:expr,$keys:expr,$all:expr,$b:expr,$t:ty,$c:expr,$d:expr) => {
-        once(
-            match if $all != &ListColumnsModes::None {
-                $all
-            } else {
-                $b
-            } {
-                ListColumnsModes::Plain => {
-                    let val =
-                        TryInto::<$t>::try_into($sc.props.get($c).unwrap_or_default()).unwrap();
-                    Some(format!(concat!(stringify!($b), " = ", $d), val))
-                }
-                _ => None,
-            },
-        )
-    };
-}
-
 macro_rules! format_column_output {
     ($sc:expr,$keys:expr,$all:expr,$b:expr,$t:ty,$c:expr,$d:expr) => {
         once(
@@ -253,7 +235,7 @@ macro_rules! format_column_output {
                 $all
             } else {
                 $b
-            } {
+            } {                
                 ListColumnsModes::Plain => {
                     let val =
                         TryInto::<$t>::try_into($sc.props.get($c).unwrap_or_default()).unwrap();
@@ -327,16 +309,15 @@ fn output_list(args: &Cli, scs: &Shortcuts) {
                     scs.iter()
                         .map(|sc| format!(
                             "{{{}}}",
-                            sc.props
-                                .iter()
-                                .map(|kv| format!(
+                            sc.props.keys().sorted()                                
+                                .map(|k| format!(
                                     "{:?}:{}",
-                                    kv.0,
-                                    match kv.1 {
-                                        shortcuts::ShortcutProp::UInt32(u) => u.to_string(),
-                                        shortcuts::ShortcutProp::String(s) => format!("{:?}", s),
-                                        shortcuts::ShortcutProp::Strings(s) => format!("{:?}", s),
-                                        shortcuts::ShortcutProp::None => "".to_owned(),
+                                    k,
+                                    match sc.props.get(k) {
+                                        Some(shortcuts::ShortcutProp::UInt32(u)) => u.to_string(),
+                                        Some(shortcuts::ShortcutProp::String(s)) => format!("{:?}", s),
+                                        Some(shortcuts::ShortcutProp::Strings(s)) => format!("{:?}", s),
+                                        _ => "".to_owned(),
                                     }
                                 ))
                                 .collect::<Vec<String>>()
@@ -350,7 +331,7 @@ fn output_list(args: &Cli, scs: &Shortcuts) {
                     "{}",
                     scs.iter()
                         .map(|sc| {
-                            format_column_output!(sc, keys, all, index, String, "index", "{}")
+                            format_column_output!(sc, keys, all, index, u32, "index", "{}")
                                 .chain(format_column_output!(
                                     sc,
                                     keys,
