@@ -18,6 +18,7 @@
 #include "./shortcuts.hpp"
 #include "./logging.hpp"
 #include <chrono>
+#include <regex>
 #include <thread>
 
 using namespace std;
@@ -102,8 +103,8 @@ int main(int argc, char *argv[])
         positional.add("command", 1);
         positional.add("argument_01", -1);
 
-        hidden.add_options()("separator", po::value(&separator), "Table output columns separator");
-        hidden.add_options()("keys", "Show key for each value in table output");
+        hidden.add_options()("separator", po::value(&separator), "");
+        hidden.add_options()("keys", "");
 
         set_format_switches$("index", "Index", "None");
         set_format_switches$("allow_desktop_config", "AllowDesktopConfig", "None");
@@ -128,14 +129,16 @@ int main(int argc, char *argv[])
         set_format_switches$("tags", "Tags", "None");
 
         set_format_switches_ex$("all", "Override all columns format with the specified one. None = ignored.", "None");
+
+        hidden.add_options()("json", "");
         // desc.add_options()("list", "list all shortcuts");
         po::variables_map vm;
         po::store(po::command_line_parser(argc, argv).options(hidden).positional(positional).run(), vm);
         po::notify(vm);
 
-#if DEBUG==1
-        fmt::print("argument_01: {}\n", argument_01);
-        fmt::print("Command: {}\n", command);
+#if DEBUG == 1
+        // fmt::print("argument_01: {}\n", argument_01);
+        // fmt::print("Command: {}\n", command);
 #endif
 
         if (boost::iequals(argument_01, "version"))
@@ -156,13 +159,12 @@ int main(int argc, char *argv[])
             if (boost::iequals(argument_01, "list"))
             {
                 // print spcific command
-                fmt::print("List entries summary info\n\n" C_TITLE "Usage:\n" C_LS " steam-shortcuts-editor list [OPTIONS] <SHORTCUTS_PATH>\n\n"
-                           C_TITLE "Arguments:\n" C_LS
-                           "  <SHORTCUTS_PATH>  Path to \"shortcuts.vdf\"\n\n"
-                           C_TITLE "Options:\n" C_LS);
+                fmt::print("List entries summary info\n\n" C_TITLE "Usage:\n" C_LS " steam-shortcuts-editor list [OPTIONS] <SHORTCUTS_PATH>\n\n" C_TITLE "Arguments:\n" C_LS
+                           "  <SHORTCUTS_PATH>  Path to \"shortcuts.vdf\"\n\n" C_TITLE "Options:\n" C_LS);
 
                 fmt::print("    " C_OPT "--separator <SEPARATOR>\n" C_LS "       Table output columns separator [default: \" \"]\n\n");
                 fmt::print("    " C_OPT "--keys\n" C_LS "       Show key for each value in table output\n\n");
+                fmt::print("    " C_OPT "--json\n" C_LS "       Export list in JSON format. This will ignore \"--separator\", \"--keys\", \"--last_play_time_*\".\n\n");
                 for (const auto &elem : format_switches)
                 {
                     fmt::print("    " C_OPT "--{} <format>\n" C_LS "       {}\n\n", elem.first, hidden.find(elem.first, false, true).description());
@@ -194,50 +196,98 @@ int main(int argc, char *argv[])
         {
             const auto all_format = format_switches["all"];
             const auto showkeys = vm.count("keys");
+            const auto json = vm.count("json");
             auto out = fmt::memory_buffer();
-            scs.foreach ([&format_switches, &out, &all_format, &separator, &showkeys](const shortcuts::Shortcut &sc)
+
+            auto first_obj = true;
+
+            if (json)
+                format_to(std::back_inserter(out), "{}", "[");
+            scs.foreach ([&first_obj, &json, &format_switches, &out, &all_format, &separator, &showkeys](const shortcuts::Shortcut &sc)
                          {
-                            //log$("main", "Cycle {}",sc.index);
                             auto first = true;
-                            for (const auto &elem : format_switches)
+                if (json)
+                {
+                    if (!first_obj)
+                        format_to(std::back_inserter(out), "{}", ",");
+                    first_obj = false;
+                    format_to(std::back_inserter(out), "{}", "{");
+                    for (const auto &elem : sc.props)
+                    {
+                        if (elem.first == "all")
+                            continue;
+
+                        
+                        auto val = sc.props.find(elem.first);
+                        if (val != sc.props.end())
+                        {
+                            if (!first)
+                                format_to(std::back_inserter(out), "{}", ",");
+                            first = false;
+                            format_to(std::back_inserter(out), "\"{}\":", elem.first);
+                            if (auto st = get_if<string>(&val->second))
                             {
-                                if (elem.first == "all")
-                                    continue;
-                                // log$("main", " - sw {} = {}", elem.first,elem.second);
-                                if (boost::iequals(elem.second, "Plain") || boost::iequals(all_format, "Plain"))
-                                {
-                                    if (!first)
-                                        format_to(std::back_inserter(out), "{}", separator);
-                                    first = false;
-                                    if (showkeys)
-                                        format_to(std::back_inserter(out), "{} = ", elem.first);
-                                    auto val = sc.props.find(elem.first);
-                                    if (val != sc.props.end())
-                                    {
-                                        if (auto st = get_if<string>(&val->second))
-                                        {
-                                            // log$("main", "   - {}", *st);
-                                            format_to(std::back_inserter(out), (val->first == "tags") ? "{}" : "\"{}\"", *st);
-                                        }
-                                        else if (auto st = get_if<uint32_t>(&val->second))
-                                        {
-                                            // log$("main", "   - {}", *st);
-                                            format_to(std::back_inserter(out), "{}", *st);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        // log$("main", "   - {}", "");
-                                        format_to(std::back_inserter(out), "{}", "<missing>");
-                                    }
-                                    // if (get<uint32_t>(val))
-                                    // format_to(std::back_inserter(out), "{}", );
-                                }
+                                format_to(std::back_inserter(out), elem.first == "tags" ? "{}" : "\"{}\"", elem.first == "tags"  ? *st : std::regex_replace(*st, std::regex("\""), "\\\""));
+                            }
+                            else if (auto st = get_if<uint32_t>(&val->second))
+                            {
+                                // log$("main", "   - {}", *st);
+                                format_to(std::back_inserter(out), "{}", *st);
+                            }
+                        }
+                        else
+                        {
+                            // log$("main", "   - {}", "");
+                            //format_to(std::back_inserter(out), "{}", "<missing>");
+                        }                        
+                    }
+                    format_to(std::back_inserter(out), "{}", "}");
                     
                 }
-                format_to(std::back_inserter(out), "{}", "\n");
-                return true; });
+                else
+                {
+                    // log$("main", "Cycle {}",sc.index);
 
+                    for (const auto &elem : format_switches)
+                    {
+                        if (elem.first == "all")
+                            continue;
+                        // log$("main", " - sw {} = {}", elem.first,elem.second);
+                        if (boost::iequals(elem.second, "Plain") || boost::iequals(all_format, "Plain"))
+                        {
+                            if (!first)
+                                format_to(std::back_inserter(out), "{}", separator);
+                            first = false;
+                            if (showkeys)
+                                format_to(std::back_inserter(out), "{} = ", elem.first);
+                            auto val = sc.props.find(elem.first);
+                            if (val != sc.props.end())
+                            {
+                                if (auto st = get_if<string>(&val->second))
+                                {
+                                    // log$("main", "   - {}", *st);
+                                    format_to(std::back_inserter(out), (val->first == "tags") ? "{}" : "\"{}\"", *st);
+                                }
+                                else if (auto st = get_if<uint32_t>(&val->second))
+                                {
+                                    // log$("main", "   - {}", *st);
+                                    format_to(std::back_inserter(out), "{}", *st);
+                                }
+                            }
+                            else
+                            {
+                                // log$("main", "   - {}", "");
+                                format_to(std::back_inserter(out), "{}", "<missing>");
+                            }
+                            // if (get<uint32_t>(val))
+                            // format_to(std::back_inserter(out), "{}", );
+                        }
+                    }
+                    format_to(std::back_inserter(out), "{}", "\n");
+                }
+                    return true; });
+            if (json)
+                format_to(std::back_inserter(out), "{}\n", "]");
             fmt::print("{}", string(out.data(), out.size()));
         }
     }

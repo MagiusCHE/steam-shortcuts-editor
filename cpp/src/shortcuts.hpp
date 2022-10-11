@@ -45,7 +45,8 @@ namespace shortcuts
         ~Shortcut()
         {
         }
-        unordered_map<string, variant<string, uint32_t>> props;
+        //unordered_map<string, variant<string, uint32_t>> props;
+        map<string, variant<string, uint32_t>> props;
     };
 
     //

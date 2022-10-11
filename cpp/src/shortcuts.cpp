@@ -11,6 +11,7 @@
 #include "./shortcuts.hpp"
 #include <fstream> // std::ifstream
 #include <boost/algorithm/string.hpp>
+#include <regex>
 
 using namespace std;
 using namespace shortcuts;
@@ -300,7 +301,7 @@ Shortcut::Shortcut(uint32_t index, const shortcuts::Map &map) : Shortcut()
                 format_to(std::back_inserter(out), "{}", ", ");
             else
                 format_to(std::back_inserter(out), "{}", "[");
-            format_to(std::back_inserter(out), "\"{}\"", get<String>(elem.second));
+            format_to(std::back_inserter(out), "\"{}\"", std::regex_replace(get<String>(elem.second), std::regex("\""), "\\\""));
         }
         if (out.size() == 0)
             format_to(std::back_inserter(out), "{}", "[");
