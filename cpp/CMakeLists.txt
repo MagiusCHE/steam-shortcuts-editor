@@ -15,10 +15,17 @@ INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 file(GLOB_RECURSE all_sources CONFIGURE_DEPENDS "src/*.hpp" "src/*.cpp")
 
 add_executable(steam-shortcuts-editor ${all_sources})
-add_compile_definitions("DEBUG=$<CONFIG:Debug>")
+add_compile_definitions("PROJECT_NAME=\"${CMAKE_PROJECT_NAME}\"")
+add_compile_definitions("PROJECT_VERSION=\"${CMAKE_PROJECT_VERSION}\"")
+add_compile_definitions("PROJECT_AUTHOR_NAME=\"${PROJECT_AUTHOR_NAME}\"")
+add_compile_definitions("PROJECT_AUTHOR_EMAIL=\"${PROJECT_AUTHOR_EMAIL}\"")
+add_compile_definitions("PROJECT_HOMEPAGE=\"${PROJECT_HOMEPAGE}\"")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(STATIC -static)
+else()
+    #add_compile_definitions("DEBUG=$<CONFIG:Debug>")
+    add_compile_definitions("DEBUG=1")
 endif()
 
 TARGET_LINK_LIBRARIES( steam-shortcuts-editor LINK_PUBLIC ${Boost_LIBRARIES} stdc++fs ${STATIC})

@@ -1,10 +1,15 @@
 {
   "name": "steam-shotrcuts-editor",
   "version": "0.0.1",
+  "author": {
+    "name": "Magius(CHE)",
+    "email": "magiusche@magius.it"
+  },
+  "homepage": "https://github.com/magiusche/steam-shortcuts-editor",
   "main": "none",
   "license": "MIT",
   "scripts": {
-    "build:debug":"/usr/bin/cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER:FILEPATH=/usr/bin/clang -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++ -S./ -B./build/Debug -G Ninja && cmake --build ./build/Debug --config Debug --target all",
+    "build:debug":"/usr/bin/cmake --no-warn-unused-cli -DPROJECT_AUTHOR_NAME=\"Magius(CHE)\" -DPROJECT_AUTHOR_EMAIL=\"magiusche@magius.it\" -DPROJECT_HOMEPAGE=\"https://github.com/magiusche/steam-shortcuts-editor\" -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER:FILEPATH=/usr/bin/clang -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++ -S./ -B./build/Debug -G Ninja && cmake --build ./build/Debug --config Debug --target all",
     "build:release": "/usr/bin/cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_C_COMPILER:FILEPATH=/usr/bin/clang -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++ -S./ -B./build/Release -G Ninja && cmake --build ./build/Release --config Release --target all",
     "debug":"yarn build:debug && build/Debug/steam-shortcuts-editor"    
   }
