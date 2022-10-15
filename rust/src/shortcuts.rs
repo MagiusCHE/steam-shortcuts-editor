@@ -394,7 +394,91 @@ impl Shortcuts {
         write_type(file, VdfMapItemType::MapEnd)?;
         Ok(())
     }
+
+    pub fn update_from_json(&mut self, jsonstring: &String) -> Result<(), String> {
+        match serde_json::from_str::<serde_json::Value>(jsonstring.as_str()) {
+            Ok(json) => {
+                if let serde_json::Value::Array(a) = json {
+                    for (i, v) in a.iter().enumerate() {
+                        if let serde_json::Value::Object(s) = v {
+                            if let Ok(idx) = from_json_number(&s["index"]) {
+                                self.at_or_new(&idx, |_, sc: &mut Shortcut| -> Result<(), String> {
+                                    for prop in SHORTCUT_PROP_INFO.iter() {
+                                        match &prop.type_default {
+                                            ShortcutProp::UInt32(_) =>  
+                                                *sc.props.entry(String::from(prop.switchname)).or_default() = ShortcutProp::UInt32(from_json_number(&s[prop.switchname])?),
+                                            ShortcutProp::String(_) => *sc.props.entry(String::from(prop.switchname)).or_default() = ShortcutProp::String(from_json_string(&s[prop.switchname])?),
+                                            ShortcutProp::Strings(_) =>  *sc.props.entry(String::from(prop.switchname)).or_default() = ShortcutProp::Strings(from_json_array(&s[prop.switchname])?),
+                                            ShortcutProp::None => unreachable!(),
+                                        }
+                                    } 
+                                    Ok(())                                   
+                                })?;
+                            } else {
+                                return Err(format!("Missing \"index\" at object[{}]", i));
+                            }
+                        } else {
+                            return Err(
+                                "Input must a be a valid json array made with objects.".to_owned()
+                            );
+                        }
+                    }
+                    Ok(())
+                } else {
+                    Err("Input must a be a valid json array.".to_owned())
+                }
+            }
+            Err(err) => Err(format!("{}", err)),
+        }
+    }
 }
+
+fn from_json_number(jn: &serde_json::Value) -> Result<u32, String> {
+    if let Some(num) = jn
+        .as_u64()
+        .and_then(|e| u32::try_from(e).map_or(None, |e| Some(e)))
+    {
+        Ok(num)
+    } else {
+        Err(format!(
+            "Unable to convert json value to u32. Json value is {:?}",
+            jn
+        ))
+    }
+}
+fn from_json_string(jn: &serde_json::Value) -> Result<String, String> {
+    if let Some(s) = jn.as_str().and_then(|e| Some(String::from(e))) {
+        Ok(s)
+    } else {
+        Err(format!(
+            "Unable to convert json value to String. Json value is {:?}",
+            jn
+        ))
+    }
+}
+
+fn from_json_array(jn: &serde_json::Value) -> Result<Vec<String>, String> {
+    if let Some(s) = jn.as_array().and_then(|e| {
+        let mut ret = vec![];
+        for ele in e.iter() {
+            if let Some(ss) = ele.as_str() {
+                ret.push(String::from(ss))
+            } else {
+                return None
+            }
+        }
+        Some(ret)
+    }) {
+        Ok(s)
+    } else {
+        Err(format!(
+            "Unable to convert json value to Vec<String>. It should be an array of string. Json value is {:?}",
+            jn
+        ))
+    }
+}
+
+
 
 fn write_string(file: &mut File, string: &str) -> Result<(), String> {
     match write!(file, "{}\0", string) {

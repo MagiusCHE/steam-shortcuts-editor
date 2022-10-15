@@ -1,0 +1,22 @@
+[
+    {
+        "allow_desktop_config": 1,
+        "allow_overlay": 0,
+        "app_id": 4123550851,
+        "app_name": "Arke",
+        "devkit": 0,
+        "devkit_game_id": "",
+        "devkit_override_app_id": 0,
+        "exe": "\"andonio\"",
+        "flatpak_app_id": "",
+        "icon": "",
+        "index": 0,
+        "is_hidden": 1,
+        "last_play_time": 0,
+        "launch_options": "pippo lino",
+        "open_vr": 0,
+        "shortcut_path": "/usr/share/applications/org.kde.ark.desktop",
+        "start_dir": "\"./\"",
+        "tags": ["geppo","\"lippo"]
+    }
+]

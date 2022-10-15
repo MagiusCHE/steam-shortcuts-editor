@@ -290,6 +290,28 @@ fn edit_shortcuts(args: &Cli) -> Result<(), Error> {
                     ShortcutProp::None => panic!("Shortcut[{}][{}] contains a None propertry. This is not acceptable.", i, k),
                 }
             })?;
+        } else if let Some(jpath) = json_path {
+            let jpathfile = Path::new(jpath);
+            if !jpathfile.exists(){
+                return Err(Error::InvalidInputFile(format!("JSON Path is invalid. Missing file at {}",jpath)))
+            }
+
+            match File::open(jpathfile){
+                Ok(mut file) => {
+                    let mut buf = String::new();
+                    if let Ok(_) = file.read_to_string(&mut buf) {
+                        match scs.update_from_json(&buf) {
+                            Ok(_) => Ok(()),
+                            Err(err) => Err(Error::InvalidInputFile(format!("JSON Input file is invalid: {:?}",err)))
+                        }
+                    } else {
+                        Err(Error::InvalidInputFile(format!("Canno read from JSON Input file {}",jpath)))
+                    }
+                },
+                Err(_) => todo!(),
+            }?;
+
+            
         }
 
         let destination = Path::new( if let Some(p) = out { p } else { shortcuts_path.as_ref().unwrap() } );
