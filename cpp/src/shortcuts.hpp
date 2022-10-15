@@ -48,6 +48,30 @@ struct Map {
     VdfMap v;
 };
 
+using PropsType = map<string, tuple<string, PropsTypes, uint8_t>>;
+
+const PropsType valid_props = {
+    {"index", {"Index", PropsTypes::UInt32, 0}},
+    {"app_id", {"AppId", PropsTypes::UInt32, 1}},
+    {"app_name", {"AppName", PropsTypes::String, 2}},
+    {"exe", {"Exe", PropsTypes::String, 3}},
+    {"start_dir", {"StartDir", PropsTypes::String, 4}},
+    {"icon", {"icon", PropsTypes::String, 5}},
+    {"shortcut_path", {"ShortcutPath", PropsTypes::String, 6}},
+    {"launch_options", {"LaunchOptions", PropsTypes::String, 7}},
+    {"is_hidden", {"IsHidden", PropsTypes::UInt32, 8}},
+    {"allow_desktop_config", {"AllowDesktopConfig", PropsTypes::UInt32, 9}},
+    {"allow_overlay", {"AllowOverlay", PropsTypes::UInt32, 10}},
+    {"open_vr", {"OpenVR", PropsTypes::UInt32, 11}},
+    {"devkit", {"Devkit", PropsTypes::UInt32, 12}},
+    {"devkit_game_id", {"DevkitGameID", PropsTypes::String, 13}},
+    {"devkit_override_app_id", {"DevkitOverrideAppID", PropsTypes::UInt32, 14}},
+    {"last_play_time", {"LastPlayTime", PropsTypes::UInt32, 15}},
+    {"flatpak_app_id", {"FlatpakAppID", PropsTypes::String, 16}},
+    {"tags", {"Tags", PropsTypes::Strings, 17}}};
+
+static const uint8_t MAX_VALID_PROPS = 18;
+
 using PropValue = variant<string, uint32_t>;
 using Props = map<string, PropValue>;
 
@@ -88,6 +112,13 @@ class Shortcuts : private Loggable {
     static bool prop_is_stringarr(const string &name);
     static string resja(const string &json_stringified_array, bool emptystring_if_emptyarray = false);
     static PropsValidReturns is_prop_valid(const string &key, const string &value, bool ignore_value_check = false);
+    static void for_each_valid_props(function<void(const PropsType &prop)> f);
+
+    template <typename T>
+    static optional<tuple<string, T>> prop_optional_find(const map<string, T> &props, function<bool(const T &elem)> test);
+    template <typename T>
+    static optional<T> prop_optional_find(const map<string, T> &props, const string &key);
+
     // const int parse() const;
     int parse(string source) {
         return parse(fs::path(source));

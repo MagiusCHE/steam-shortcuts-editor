@@ -107,13 +107,11 @@ int main(int argc, char *argv[]) {
             "    " C_OPT "version" C_LS
             "  Print version information\n"
             "    " C_OPT "help" C_LS
-            "     Print this message or the help of the given subcommand(s)\n"
-            "\n" C_TITLE "Options:" C_LS
-            "\n"
-            "    " C_OPT "-h, --help" C_LS "  Print this message.\n";
+            "     Print this message or the help of the given subcommand(s)\n\n" C_TITLE "Options:" C_LS "\n"
+            "    " C_OPT "-h, --help" C_LS "  Print this message.";
 
         po::options_description hidden("Hidden options");
-        // desc.add_options()("help,h", "Print help information");
+        hidden.add_options()("help,h", "");
         // desc.add_options()("list", "List entries summary info");
         hidden.add_options()("command", po::value(&command), "");
         hidden.add_options()("argument_01", po::value(&argument_01), "");
@@ -166,15 +164,14 @@ int main(int argc, char *argv[]) {
         fmt::print("Command: {}\n", command);
         fmt::print("argument_01: {}\n", argument_01);
 #endif
+        if (!vm.count("command") || (boost::iequals(command, "help") && argument_01.empty())) {
+            fmt::print("{}\n", help_main);
+            return (!vm.count("command") && !vm.count("help")) ? 2 : 0;
+        }
 
         if (boost::iequals(argument_01, "version")) {
             // print spcific command
             fmt::print("{} {} by {} - {}, {}\n\n", PROJECT_NAME, PROJECT_VERSION, PROJECT_AUTHOR_NAME, PROJECT_AUTHOR_EMAIL, PROJECT_HOMEPAGE);
-            return 0;
-        }
-
-        if (boost::iequals(command, "help") && !vm.count("argument_01")) {
-            cout << help_main << "\n\n";
             return 0;
         }
 
@@ -199,7 +196,7 @@ int main(int argc, char *argv[]) {
                            "\n" C_TITLE "Options:\n" C_LS);
 
                 fmt::print("      " C_OPT "--json-path" C_LS " <JSON_PATH>  Path to json contains the entries. It will ignore --idx, --key, --val. If <SHORTCUTS_PATH> not exists, --json-path will be required.\n");
-                fmt::print("      " C_OPT "--idx" C_LS " <IDX>              Index of the entry to operate on (requires --key and --val) if the entry does not exist idx will be ignored and a new one will be created to the end of the list\n");
+                fmt::print("      " C_OPT "--idx" C_LS " <IDX>              Index of the entry to operate on (requires --key and --val) if the entry does not exist idx will be ignored and a new one will be created to the end of the list.\n");
                 fmt::print("      " C_OPT "--key" C_LS " <KEY>              Single key to change on Shortcuts[idx] (requires --idx and --val)\n");
                 fmt::print("      " C_OPT "--val" C_LS " <VAL>              New value for Shortcuts[idx].key=? (requires --idx and --key)\n");
                 fmt::print("      " C_OPT "--out" C_LS " <VAL>              Output file destination for generated vdf. If <SHORTCUTS_PATH> is missing --out will be used as output.\n");
@@ -220,7 +217,7 @@ int main(int argc, char *argv[]) {
             if (argument_01.empty() && edit_options.json_path.empty())
                 throw invalid_argument("Missing required <SHORTCUTS_PATH> or --json-path. Check the usage.");
             if (edit_options.json_path.empty() && edit_options.key.empty())
-                throw invalid_argument("Missing required --json-path or --id,--key,--val. Check the usage.");
+                throw invalid_argument("Missing required --json-path or --idx + --key + --val. Check the usage.");
         }
 
         if (argument_01.empty() && !boost::iequals(command, "edit"))
@@ -251,7 +248,7 @@ int main(int argc, char *argv[]) {
             const fs::path vdf_out(edit_options.out);
             if (fs::exists(vdf_out)) {
                 if (!vm.count("force"))
-                    throw runtime_error(fmt::format("Shortcuts file already exists at: \"{}\"", vdf_out.string()));               
+                    throw runtime_error(fmt::format("Shortcuts file already exists at: \"{}\". Use --force to overwire it.", vdf_out.string()));
             }
 
             if (!edit_options.json_path.empty()) {
@@ -313,13 +310,16 @@ int main(int argc, char *argv[]) {
         error$("ERROR", "{}", "Cannot specify more than 2 positional arguments: <SHORTCUTS_PATH> <SUBCOMMAND>.");
         error$("main", "{}", "Try use --help.");
         error$("main", "{}", "Program aborted.");
+        return 1;
     } catch (const exception &e) {
         error$("ERROR", "{}", /*typeid(e).name(), */ e.what());
         error$("main", "{}", "Program aborted.");
+        return 1;
     }
 }
 
 void show_list(const unordered_map<string, string> &format_switches, Shortcuts &scs, const string &separator, bool showkeys, bool json) {
+    // log$("main", "{}", "mapat format_switches all");
     const auto all_format = format_switches.at("all");
     auto out = fmt::memory_buffer();
 
@@ -370,44 +370,40 @@ void show_list(const unordered_map<string, string> &format_switches, Shortcuts &
                 else
                 {
                     // log$("main", "Cycle {}",sc.index);
+                    for (auto order = 0; order < MAX_VALID_PROPS; order++) {
+                        auto propinfo = Shortcuts::prop_optional_find<tuple<string, PropsTypes, uint8_t>>(valid_props, [&order](const auto &elem) {
+                            return get<2>(elem) == order;
+                        }).value();
+                        auto prop_name = get<0>(propinfo);
 
-                    for (const auto &elem : format_switches)
-                    {
-                        if (elem.first == "all")
-                            continue;
+                        auto switchvalue = format_switches.at(prop_name);
+
                         // log$("main", " - sw {} = {}", elem.first,elem.second);
-                        if (boost::iequals(elem.second, "Plain") || boost::iequals(all_format, "Plain"))
-                        {
+                        if (boost::iequals(switchvalue, "Plain") || boost::iequals(all_format, "Plain")) {
                             if (!first)
                                 format_to(std::back_inserter(out), "{}", separator);
                             first = false;
                             if (showkeys)
-                                format_to(std::back_inserter(out), "{} = ", elem.first);
-                            auto val = sc.props.find(elem.first);
-                            if (val != sc.props.end())
-                            {
-                                if (auto st = get_if<string>(&val->second))
-                                {
+                                format_to(std::back_inserter(out), "{} = ", prop_name);
+                            auto val = sc.props.find(prop_name);
+                            if (val != sc.props.end()) {
+                                if (auto st = get_if<string>(&val->second)) {
                                     // log$("main", "   - {}", *st);
                                     format_to(std::back_inserter(out), (val->first == "tags") ? "{}" : "\"{}\"", *st);
-                                }
-                                else if (auto st = get_if<uint32_t>(&val->second))
-                                {
+                                } else if (auto st = get_if<uint32_t>(&val->second)) {
                                     // log$("main", "   - {}", *st);
                                     format_to(std::back_inserter(out), "{}", *st);
                                 }
-                            }
-                            else
-                            {
+                            } else {
                                 // log$("main", "   - {}", "");
                                 format_to(std::back_inserter(out), "{}", "<missing>");
                             }
                             // if (get<uint32_t>(val))
                             // format_to(std::back_inserter(out), "{}", );
+                            }
                         }
+                        format_to(std::back_inserter(out), "{}", "\n");
                     }
-                    format_to(std::back_inserter(out), "{}", "\n");
-                }
                     return true; });
     if (json)
         format_to(std::back_inserter(out), "{}\n", "]");

@@ -25,29 +25,6 @@ namespace fs = filesystem;
 
 namespace json = boost::json;
 
-using PropsType = map<string, tuple<string, PropsTypes, uint8_t>>;
-
-const PropsType valid_props = {
-    {"app_id", {"AppId", PropsTypes::UInt32, 0}},
-    {"app_name", {"AppName", PropsTypes::String, 1}},
-    {"exe", {"Exe", PropsTypes::String, 2}},
-    {"start_dir", {"StartDir", PropsTypes::String, 3}},
-    {"icon", {"icon", PropsTypes::String, 4}},
-    {"shortcut_path", {"ShortcutPath", PropsTypes::String, 5}},
-    {"launch_options", {"LaunchOptions", PropsTypes::String, 6}},
-    {"is_hidden", {"IsHidden", PropsTypes::UInt32, 7}},
-    {"allow_desktop_config", {"AllowDesktopConfig", PropsTypes::UInt32, 8}},
-    {"allow_overlay", {"AllowOverlay", PropsTypes::UInt32, 9}},
-    {"open_vr", {"OpenVR", PropsTypes::UInt32, 10}},
-    {"devkit", {"Devkit", PropsTypes::UInt32, 11}},
-    {"devkit_game_id", {"DevkitGameID", PropsTypes::String, 12}},
-    {"devkit_override_app_id", {"DevkitOverrideAppID", PropsTypes::UInt32, 13}},
-    {"last_play_time", {"LastPlayTime", PropsTypes::UInt32, 14}},
-    {"flatpak_app_id", {"FlatpakAppID", PropsTypes::String, 15}},
-    {"tags", {"Tags", PropsTypes::Strings, 16}}};
-
-static const uint8_t MAX_VALID_PROPS = 17;
-
 enum VdfMapItemType : uint8_t {
     Map = 0x00,
     String = 0x01,
@@ -55,18 +32,24 @@ enum VdfMapItemType : uint8_t {
     MapEnd = 0x08,
 };
 
+void Shortcuts::for_each_valid_props(function<void(const PropsType &prop)> f) {
+    for (const auto &elem : valid_props) {
+        // f(elem);
+    }
+}
+
 template <typename T>
-optional<T> prop_optional_find(const map<string, T> &props, const string &key) {
-    // log$("prop_optional_find", "Find {}", key);
+optional<T> Shortcuts::prop_optional_find(const map<string, T> &props, const string &key) {
+    // log$("Shortcuts::prop_optional_find", "Find {}", key);
     auto exists = props.find(key);
     if (exists != props.end())
         return exists->second;
-    // log$("prop_optional_find", "{} not found", key);
+    // log$("Shortcuts::prop_optional_find", "{} not found", key);
     return {};
 }
 
 template <typename T>
-optional<tuple<string, T>> prop_optional_find(const map<string, T> &props, function<bool(const T &elem)> test) {
+optional<tuple<string, T>> Shortcuts::prop_optional_find(const map<string, T> &props, function<bool(const T &elem)> test) {
     for (const auto &elem : props) {
         if (test(elem.second)) {
             return elem;
@@ -112,14 +95,17 @@ string value_to_string(Value v) {
 }
 
 bool Shortcuts::prop_is_uint32(const string &name) {
+    // log$("prop_is_uint32","Map at {}", name);
     return (get<1>(valid_props.at(name))) == PropsTypes::UInt32;
 }
 
 bool Shortcuts::prop_is_string(const string &name) {
+    // log$("prop_is_string", "Map at {}", name);
     return (get<1>(valid_props.at(name))) == PropsTypes::String;
 }
 
 bool Shortcuts::prop_is_stringarr(const string &name) {
+    // log$("prop_is_stringarr", "Map at {}", name);
     return (get<1>(valid_props.at(name))) == PropsTypes::Strings;
 }
 
@@ -305,16 +291,18 @@ void Shortcuts::store_into(const string &destfile) {
 void Shortcut::store_into(ofstream &out) const {
     write_byte(out, VdfMapItemType::Map);
     write_string(out, fmt::format("{}", get<uint32_t>(props.at("index"))));
-    auto index = prop_optional_find(props, "index");
+    auto index = Shortcuts::prop_optional_find(props, "index");
     // log("Write {}", get<string>(props.at("appname")));
     // Enforce write ordering
     for (auto order = 0; order < MAX_VALID_PROPS; order++) {
-        auto propinfo = prop_optional_find<tuple<string, PropsTypes, uint8_t>>(valid_props, [&order](const auto &elem) {
+        auto propinfo = Shortcuts::prop_optional_find<tuple<string, PropsTypes, uint8_t>>(valid_props, [&order](const auto &elem) {
                             return get<2>(elem) == order;
                         }).value();
         auto prop_name = get<0>(propinfo);
+        if (prop_name == "index")
+            continue;
 
-        auto exists = prop_optional_find(props, prop_name);
+        auto exists = Shortcuts::prop_optional_find(props, prop_name);
         if (!exists.has_value())
             throw runtime_error(fmt::format("Missing property \"{}\" on Shortcut[{}].", prop_name, index.has_value() ? fmt::format("{}", get<uint32_t>(index.value())) : "<no index>"));
 
@@ -387,7 +375,7 @@ bool Shortcuts::get_or_create(uint32_t index, function<void(bool isnew, Shortcut
     // log("Search shortcuts at {}", index);
     uint32_t maxidx = 0;
     for (auto &elem : shortcuts) {
-        if (auto mval = prop_optional_find(elem.second.props, "index")) {
+        if (auto mval = Shortcuts::prop_optional_find(elem.second.props, "index")) {
             auto idx = get<uint32_t>(mval.value());
 
             if (idx == index) {
@@ -432,7 +420,7 @@ bool Shortcuts::get_or_create(uint32_t index, function<void(bool isnew, Shortcut
 // {
 //     for (auto &elem : shortcuts)
 //     {
-//         if (auto mval = prop_optional_find(elem.second.props, "index"))
+//         if (auto mval = Shortcuts::prop_optional_find(elem.second.props, "index"))
 //         {
 //             // auto fidx = get<uint32_t>(map_optional_find(elem.second.props, "index"));
 //             if (auto idx = get<uint32_t>(mval.value()))
