@@ -7,7 +7,6 @@
  *
  * @author: Magius(CHE) - magiusche@magius.it
  */
-
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -169,7 +168,7 @@ int main(int argc, char *argv[]) {
             return (!vm.count("command") && !vm.count("help")) ? 2 : 0;
         }
 
-        if (boost::iequals(argument_01, "version")) {
+        if (boost::iequals(command, "version")) {
             // print spcific command
             fmt::print("{} {} by {} - {}, {}\n\n", PROJECT_NAME, PROJECT_VERSION, PROJECT_AUTHOR_NAME, PROJECT_AUTHOR_EMAIL, PROJECT_HOMEPAGE);
             return 0;
@@ -350,7 +349,10 @@ void show_list(const unordered_map<string, string> &format_switches, Shortcuts &
                             format_to(std::back_inserter(out), "\"{}\":", elem.first);
                             if (auto st = get_if<string>(&val->second))
                             {
-                                format_to(std::back_inserter(out), elem.first == "tags" ? "{}" : "\"{}\"", elem.first == "tags"  ? *st : std::regex_replace(*st, std::regex("\""), "\\\""));
+                                if (elem.first != "tags") 
+                                    format_to(std::back_inserter(out), "\"{}\"", std::regex_replace(*st, std::regex("\""), "\\\""));
+                                else
+                                    format_to(std::back_inserter(out), "{}" ,  *st );
                             }
                             else if (auto st = get_if<uint32_t>(&val->second))
                             {
@@ -389,7 +391,10 @@ void show_list(const unordered_map<string, string> &format_switches, Shortcuts &
                             if (val != sc.props.end()) {
                                 if (auto st = get_if<string>(&val->second)) {
                                     // log$("main", "   - {}", *st);
-                                    format_to(std::back_inserter(out), (val->first == "tags") ? "{}" : "\"{}\"", *st);
+                                    if (val->first == "tags")
+                                        format_to(std::back_inserter(out), "{}" , *st);
+                                    else
+                                        format_to(std::back_inserter(out),  "\"{}\"", *st);
                                 } else if (auto st = get_if<uint32_t>(&val->second)) {
                                     // log$("main", "   - {}", *st);
                                     format_to(std::back_inserter(out), "{}", *st);
