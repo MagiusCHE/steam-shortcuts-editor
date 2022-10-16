@@ -5,6 +5,7 @@
 ## Develop
 ### Dependencies: 
 - (optional) `yarn`
+- GNU strip (GNU Binutils) 2.39.0 `strip` (to produce a clean release artifact)
 
 Steam Deck actually has `glibc 2.33` and we need `2.34` so link it statically.
 - `rustup target add x86_64-unknown-linux-musl`
