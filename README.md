@@ -1,7 +1,7 @@
 # Steam Shortcuts Editor
 ## Usage
 ```
-steam-shortcuts-editor ./shortcuts.vdf list
+steam-shortcuts-editor list ./shortcuts.vdf
 ```
 will output:
 ```
@@ -15,6 +15,14 @@ will output:
 3047893182 "Minecraft: Nintendo Switch Edition"
 ...
 ```
+```
+steam-shortcuts-editor edit ./shortcuts.vdf --json-path ./shortcuts.json --out ./shortcuts_dest.vdf --force
+```
+will load `./shortcuts.json` and use it to update `./shortcuts.vdf` and write the results to `./shortcuts_dest.vdf` (overwriting)
+```
+steam-shortcuts-editor edit ./shortcuts.vdf --idx 0 --key app_name --val "My Custom Game" --out ./shortcuts_dest.vdf
+```
+will update `./shortcuts.vdf` modifying the entry 0 and change `appname` into `My Custom Game`. It writes the results into `./shortcuts_dest.vdf` (it fails if `./shortcuts_dest.vdf` already exists).
 ## Commands
 ### List
 Show all shourtcuts summary.
