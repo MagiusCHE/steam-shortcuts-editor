@@ -2,7 +2,7 @@
 ## Usage
 - see [../README.md](../README.md)
 ## Develop
-⚠️ Beware! Atually it does not compile in Release mode due to CLANK linking error (help is appreciated).
+⚠️ Beware! Actually it does not compile in Release mode due to CLANK linking error (help is appreciated).
 ### Dependencies: 
 - (optional) `yarn`
 - `boost 1.79.0+`
