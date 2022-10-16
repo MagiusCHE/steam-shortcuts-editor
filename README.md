@@ -24,39 +24,16 @@ steam-shortcuts-editor edit ./shortcuts.vdf --idx 0 --key app_name --val "My Cus
 ```
 will update `./shortcuts.vdf` modifying the entry 0 and change `appname` into `My Custom Game`. It writes the results into `./shortcuts_dest.vdf` (it fails if `./shortcuts_dest.vdf` already exists).
 ## Commands
-### List
-Show all shourtcuts summary.
-```
-steam-shortcuts-editor ./shortcuts.vdf list --tags=Plain
-```
-will output:
-```
-4173909563 "Super Mario Odyssey" ["Nintendo Switch"]
-3808027925 "Minecraft" []
-2900228243 "Garden Paws" []
-3342111099 "Animal Crossing: New Horizons" ["Nintendo Switch"]
-3134436784 "DRAGON BALL FighterZ" ["Nintendo Switch"]
-3702413278 "Mario Kart 8 Deluxe" ["Nintendo Switch"]
-2817442984 "Mario Party Superstars" ["Nintendo Switch"]
-3047893182 "Minecraft: Nintendo Switch Edition" ["Nintendo Switch"]
-2946221396 "Super Mario™ 3D World + Bowser’s Fury" ["Nintendo Switch"]
-...
-```
-```
-steam-shortcuts-editor ./shortcuts.vdf list --app-name=None --last-play-time=Plain
-```
-will output ID and Unix Time:
-```
-4173909563 1663269322
-3808027925 1663953835
-2900228243 1663233136
-3342111099 1664209048
-3134436784 1663271614
-3702413278 0
-2817442984 0
-3047893182 0
-...
-```
+- **list**: List entries summary info. Features:
+  - Table output with selectable columns.
+  - JSON output.
+- **edit**: Update entries structure recreating .vdf shortcuts file. Features:
+  - Load existing shortucts.vdf and modify it
+  - Edit via multiple invokations to modify one single entry.prop.value per invoke.
+  - Load JSON file as source to update or add new entries.
+  - Save output into vdf file.
+  - Overwriting protection
+
 ## Help
 Execute with `help` for more info.
 
