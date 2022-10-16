@@ -9,6 +9,7 @@
 - `glibc 2.33+` 
 - `cmake 3.24.1+` (yarn script will use `/usr/bin/cmake`)
 - `clang 14.0.6+` (yarn script will use `/usn/bin/clang`)
+- `strip 2.39.0+` GNU strip (GNU Binutils) to produce a clean release artifact.
 ### Compile
 - Debug: `yarn build:debug`
   - Artifact will be generated into `build/Debug/steam-shortcuts-editor`
