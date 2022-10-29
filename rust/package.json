@@ -4,8 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "build:release": "cargo build --target=x86_64-unknown-linux-musl --release && strip target/x86_64-unknown-linux-musl/release/steam-shortcuts-editor",
-    "build:release:nonstatic": "cargo build --release && strip target/release/steam-shortcuts-editor",
+    "build:release": "cargo build --target=x86_64-unknown-linux-musl --release",
+    "build:release:nonstatic": "cargo build --release",
     "build:debug": "cargo build",
     "debug": "cargo run",
     "install": "rustup target add x86_64-unknown-linux-musl"
