@@ -402,18 +402,47 @@ impl Shortcuts {
                     for (i, v) in a.iter().enumerate() {
                         if let serde_json::Value::Object(s) = v {
                             if let Ok(idx) = from_json_number(&s["index"]) {
-                                self.at_or_new(&idx, |_, sc: &mut Shortcut| -> Result<(), String> {
-                                    for prop in SHORTCUT_PROP_INFO.iter() {
-                                        match &prop.type_default {
-                                            ShortcutProp::UInt32(_) =>  
-                                                *sc.props.entry(String::from(prop.switchname)).or_default() = ShortcutProp::UInt32(from_json_number(&s[prop.switchname])?),
-                                            ShortcutProp::String(_) => *sc.props.entry(String::from(prop.switchname)).or_default() = ShortcutProp::String(from_json_string(&s[prop.switchname])?),
-                                            ShortcutProp::Strings(_) =>  *sc.props.entry(String::from(prop.switchname)).or_default() = ShortcutProp::Strings(from_json_array(&s[prop.switchname])?),
-                                            ShortcutProp::None => unreachable!(),
+                                self.at_or_new(
+                                    &idx,
+                                    |_, sc: &mut Shortcut| -> Result<(), String> {
+                                        for prop in SHORTCUT_PROP_INFO.iter() {
+                                            match &prop.type_default {
+                                                ShortcutProp::UInt32(_) => {
+                                                    if let Some(val) = s.get(prop.switchname) {
+                                                        *sc.props
+                                                            .entry(String::from(prop.switchname))
+                                                            .or_default() = ShortcutProp::UInt32(
+                                                            from_json_number(val)?,
+                                                        )
+                                                    }
+                                                }
+                                                ShortcutProp::String(_) => {
+                                                    if let Some(val) = s.get(prop.switchname) {
+                                                        *sc.props
+                                                            .entry(String::from(prop.switchname))
+                                                            .or_default() = ShortcutProp::String(
+                                                            from_json_string(val)?,
+                                                        );
+                                                    }
+                                                    //println!("Analyze {:?} {:?}", prop.switchname, &s);
+                                                    //let h = sc.props.entry(String::from(prop.switchname)).or_default();
+                                                    //*h = ShortcutProp::String(from_json_string(&s[prop.switchname])?);
+                                                }
+                                                ShortcutProp::Strings(_) => {
+                                                    if let Some(val) = s.get(prop.switchname) {
+                                                        *sc.props
+                                                            .entry(String::from(prop.switchname))
+                                                            .or_default() = ShortcutProp::Strings(
+                                                            from_json_array(val)?,
+                                                        )
+                                                    }
+                                                }
+                                                ShortcutProp::None => unreachable!(),
+                                            }
                                         }
-                                    } 
-                                    Ok(())                                   
-                                })?;
+                                        Ok(())
+                                    },
+                                )?;
                             } else {
                                 return Err(format!("Missing \"index\" at object[{}]", i));
                             }
@@ -464,7 +493,7 @@ fn from_json_array(jn: &serde_json::Value) -> Result<Vec<String>, String> {
             if let Some(ss) = ele.as_str() {
                 ret.push(String::from(ss))
             } else {
-                return None
+                return None;
             }
         }
         Some(ret)
@@ -477,8 +506,6 @@ fn from_json_array(jn: &serde_json::Value) -> Result<Vec<String>, String> {
         ))
     }
 }
-
-
 
 fn write_string(file: &mut File, string: &str) -> Result<(), String> {
     match write!(file, "{}\0", string) {
@@ -496,7 +523,11 @@ fn write_u32(file: &mut File, num: &u32) -> Result<(), String> {
 
 fn write_type(file: &mut File, mtype: VdfMapItemType) -> Result<(), String> {
     match file.write_all(&[mtype as u8]) {
-        Err(err) => Err(format!("Error while writing byte {:?}. {:?}", mtype, err)),
+        Err(err) =>
+        /*Err(format!("Error while writing byte {:?}. {:?}", &mtype, err))*/
+        {
+            Err(format!("Error while writing byte. {:?}", err))
+        }
         _ => Ok(()),
     }
 }
@@ -714,20 +745,20 @@ impl Shortcut {
     }
 
     pub fn prop_to_string(&self, key: &str) -> Option<String> {
-        Some(match &self.props[key] {
-            ShortcutProp::UInt32(n) => format!("{}", n),
-            ShortcutProp::String(n) => n.clone(),
-            ShortcutProp::Strings(n) => match serde_json::to_string(&n) {
+        Some(match self.props.get(key) {
+            Some(ShortcutProp::UInt32(n)) => format!("{}", n),
+            Some(ShortcutProp::String(n)) => n.clone(),
+            Some(ShortcutProp::Strings(n)) => match serde_json::to_string(&n) {
                 Ok(v) => v,
                 Err(_) => return None,
             },
-            ShortcutProp::None => unreachable!(),
+            _ => return None,
         })
     }
 
     pub fn prop_to_u32(&self, key: &str) -> Option<u32> {
-        match &self.props[key] {
-            ShortcutProp::UInt32(n) => Some(*n),
+        match self.props.get(key) {
+            Some(ShortcutProp::UInt32(n)) => Some(*n),
             _ => None,
         }
     }
